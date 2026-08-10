@@ -1,8 +1,9 @@
 module.exports = (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method === 'POST') {
-    const data = req.body || {};
-    return res.status(200).json({ status: 'success', received: data });
-  } else {
-    return res.status(200).json({ status: 'VNLandZ Relay is online!' });
-  }
+    return res.status(200).json({ status: 'success', message: 'Relay received data!' });
+  } 
+  
+  return res.status(200).json({ status: 'VNLandZ Relay is online!' });
 };

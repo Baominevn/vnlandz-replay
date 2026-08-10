@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
         });
       }
 
-      const incoming = cleanText(body.command || body.message || body.text || body.content);
+      const incoming = normalizeIncoming(body.command || body.message || body.text || body.content);
 
       if (incoming) {
         const queue = queues.get(clientKey) || [];
@@ -132,6 +132,17 @@ function cleanText(value) {
     .replace(/\r/g, "")
     .trim()
     .slice(0, 240);
+}
+
+function normalizeIncoming(value) {
+  const text = cleanText(value);
+  const lower = text.toLowerCase();
+
+  if (lower.startsWith("/chat ")) return cleanText(text.slice(6));
+  if (lower.startsWith(".chat ")) return cleanText(text.slice(6));
+  if (lower.startsWith("chat ")) return cleanText(text.slice(5));
+
+  return text;
 }
 
 function readJson(req) {

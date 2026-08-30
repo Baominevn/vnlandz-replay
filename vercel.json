@@ -1,8 +1,17 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.js" },
-    { "source": "/(login|logout|admin/data|poll|send|events|push)", "destination": "/api/index.js" },
-    { "source": "/(style.css|script.js|favicon.ico)", "destination": "/$1" },
-    { "source": "/((?!api|style.css|script.js).*)", "destination": "/index.html" }
+  "version": 2,
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "style.css", "use": "@vercel/static" },
+    { "src": "script.js", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/style.css", "dest": "/style.css" },
+    { "src": "/script.js", "dest": "/script.js" },
+    { "src": "/(login|logout|admin/data|poll|send|events|push)", "dest": "/server.js" },
+    { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/", "dest": "/index.html" },
+    { "src": "/(.*)", "dest": "/server.js" }
   ]
 }

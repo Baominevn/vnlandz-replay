@@ -1,6 +1,0 @@
-{
-  "name": "VnlandZ Relay Nexus Pro",
-  "description": "Cyberpunk-themed high-performance Relay Command Queue and Real-time Event Monitor for game clients and server bridges.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

@@ -8,8 +8,6 @@ globalThis.__vnlandzSessions = sessions;
 
 const MAX_QUEUE = 50;
 const MAX_EVENTS = 100;
-
-// Tài khoản Admin mặc định
 const ADMIN_USER = "admin";
 const ADMIN_PASS = "admin1234";
 
@@ -26,23 +24,19 @@ module.exports = async (req, res) => {
     const clientKey = getClientKey(url, req);
     const clientIp = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "127.0.0.1";
 
-    // --- AUTHENTICATION & ADMIN ENDPOINTS ---
-
-    // 1. API: Đăng nhập Admin (/login)
+    // 1. Đăng nhập Admin
     if (pathname === "/login" && req.method === "POST") {
       const body = await readJson(req);
       if (body.username === ADMIN_USER && body.password === ADMIN_PASS) {
-        const sessionToken = "session_" + Math.random().toString(36).substring(2);
-        sessions.add(sessionToken);
-        
-        // Thiết lập Cookie Session
-        res.setHeader("Set-Cookie", `admin_token=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
+        const token = "session_" + Math.random().toString(36).substring(2);
+        sessions.add(token);
+        res.setHeader("Set-Cookie", `admin_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800`);
         return res.status(200).json({ ok: true, message: "Đăng nhập thành công" });
       }
       return res.status(401).json({ ok: false, error: "Sai tài khoản hoặc mật khẩu!" });
     }
 
-    // 2. API: Đăng xuất (/logout)
+    // 2. Đăng xuất Admin
     if (pathname === "/logout") {
       const cookies = parseCookies(req.headers.cookie);
       if (cookies.admin_token) {
@@ -52,14 +46,13 @@ module.exports = async (req, res) => {
       return res.status(200).json({ ok: true, message: "Đã đăng xuất" });
     }
 
-    // 3. API: Lấy toàn bộ dữ liệu Dashboard (/admin/data)
+    // 3. Lấy dữ liệu Dashboard
     if (pathname === "/admin/data" && req.method === "GET") {
       const cookies = parseCookies(req.headers.cookie);
       if (!cookies.admin_token || !sessions.has(cookies.admin_token)) {
         return res.status(401).json({ ok: false, error: "Chưa xác thực quyền truy cập!" });
       }
 
-      // Tổng hợp dữ liệu theo Client Key
       const allKeys = new Set([...queues.keys(), ...events.keys()]);
       const clientsData = {};
 
@@ -80,31 +73,11 @@ module.exports = async (req, res) => {
       });
     }
 
-    // --- RELAY CLIENT ENDPOINTS ---
-
-    // 4. Trang chủ thông tin API
-    if (pathname === "/" && req.method === "GET" && !clientKey) {
-      return res.status(200).json({
-        ok: true,
-        name: "VnlandZ Relay Pro All-in-One",
-        status: "online",
-        version: "5.0",
-        endpoints: {
-          dashboard: "GET / (hoặc mở index.html)",
-          poll: "GET /poll?clientKey=YOUR_KEY",
-          send: "GET/POST /send?clientKey=YOUR_KEY&message=hello",
-          events: "POST /events"
-        }
-      });
-    }
-
-    // Kiểm tra clientKey cho các nghiệp vụ relay bên dưới
-    if (!clientKey && pathname !== "/") {
-      return res.status(400).json({ ok: false, error: "Missing or invalid clientKey" });
-    }
-
-    // 5. Endpoint: /poll (Lấy lệnh chờ)
+    // 4. API Poll
     if (pathname === "/poll" && req.method === "GET") {
+      if (!clientKey) {
+        return res.status(400).json({ ok: false, error: "Missing clientKey" });
+      }
       const queue = queues.get(clientKey) || [];
       const next = queue.shift() || "";
       queues.set(clientKey, queue);
@@ -117,14 +90,18 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 6. Endpoint: /send (Gửi lệnh vào hàng đợi)
+    // 5. API Send
     if (pathname === "/send") {
+      if (!clientKey) {
+        return res.status(400).json({ ok: false, error: "Missing clientKey" });
+      }
+
       let message = "";
       if (req.method === "GET") {
-        message = url.searchParams.get("message") || url.searchParams.get("msg") || url.searchParams.get("text") || url.searchParams.get("command") || "";
+        message = url.searchParams.get("message") || url.searchParams.get("msg") || url.searchParams.get("command") || "";
       } else if (req.method === "POST") {
         const body = await readJson(req);
-        message = body.command || body.message || body.text || body.content || "";
+        message = body.command || body.message || body.text || "";
       }
 
       const normalized = normalizeIncoming(message);
@@ -141,8 +118,12 @@ module.exports = async (req, res) => {
       });
     }
 
-    // 7. Endpoint: /events hoặc /push (Ghi nhận log từ game/client)
+    // 6. API Events
     if ((pathname === "/events" || pathname === "/push") && req.method === "POST") {
+      if (!clientKey) {
+        return res.status(400).json({ ok: false, error: "Missing clientKey" });
+      }
+
       const body = await readJson(req);
       const list = events.get(clientKey) || [];
       
@@ -150,8 +131,8 @@ module.exports = async (req, res) => {
         time: new Date().toISOString(),
         client: cleanText(body.client),
         version: cleanText(body.version),
-        type: cleanText(body.type),
-        title: cleanText(body.title),
+        type: cleanText(body.type || "LOG"),
+        title: cleanText(body.title || "Event"),
         player: cleanText(body.player),
         server: cleanText(body.server),
         message: cleanText(body.message)
@@ -176,11 +157,9 @@ module.exports = async (req, res) => {
     return res.status(404).json({ ok: false, error: "Endpoint not found" });
 
   } catch (error) {
-    return res.status(500).json({ ok: false, error: "Internal Relay Error" });
+    return res.status(500).json({ ok: false, error: "Internal Server Error" });
   }
 };
-
-// --- HÀM TIỆN ÍCH HỖ TRỢ ---
 
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -223,11 +202,9 @@ function cleanText(value) {
 function normalizeIncoming(value) {
   const text = cleanText(value);
   const lower = text.toLowerCase();
-
   if (lower.startsWith("/chat ")) return cleanText(text.slice(6));
   if (lower.startsWith(".chat ")) return cleanText(text.slice(6));
   if (lower.startsWith("chat ")) return cleanText(text.slice(5));
-
   return text;
 }
 
@@ -243,10 +220,7 @@ function parseCookies(cookieHeader) {
 }
 
 function readJson(req) {
-  // Nếu môi trường đã parse sẵn body
-  if (req.body && typeof req.body === "object") {
-    return Promise.resolve(req.body);
-  }
+  if (req.body && typeof req.body === "object") return Promise.resolve(req.body);
   if (typeof req.body === "string" && req.body.trim()) {
     try { return Promise.resolve(JSON.parse(req.body)); } catch { return Promise.resolve({}); }
   }

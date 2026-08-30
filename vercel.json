@@ -7,7 +7,10 @@
     { "src": "/admin/data", "dest": "server.js" },
     { "src": "/login", "dest": "server.js" },
     { "src": "/logout", "dest": "server.js" },
-    { "src": "/(.*\\.(css|js|html))", "dest": "/$1" },
-    { "src": "/(.*)", "dest": "server.js" }
+    { "src": "/poll", "dest": "server.js" },
+    { "src": "/send", "dest": "server.js" },
+    { "src": "/events", "dest": "server.js" },
+    { "src": "/((?!api|_next|server\\.js).*\\.(css|js|html))", "dest": "/$1" },
+    { "src": "/", "dest": "/index.html" }
   ]
 }

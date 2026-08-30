@@ -1,9 +1,13 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/admin/data", "destination": "/server.js" },
-    { "source": "/login", "destination": "/server.js" },
-    { "source": "/logout", "destination": "/server.js" },
-    { "source": "/((?!api|_next|index\\.html|style\\.css|script\\.js).*)*", "destination": "/server.js" }
+  "builds": [
+    { "src": "server.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/admin/data", "dest": "server.js" },
+    { "src": "/login", "dest": "server.js" },
+    { "src": "/logout", "dest": "server.js" },
+    { "src": "/(.*\\.(css|js|html))", "dest": "/$1" },
+    { "src": "/(.*)", "dest": "server.js" }
   ]
 }

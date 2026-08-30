@@ -1,87 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VnlandZ Cyber Dashboard v5.0</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div class="cyber-grid-bg"></div>
-
-    <!-- Khung Đăng Nhập -->
-    <div id="loginBox" class="auth-container" style="display: none;">
-        <div class="auth-card">
-            <div class="tech-badge">SECURE ACCESS</div>
-            <h2>VNLANDZ <span class="neon-text">CORE</span></h2>
-            <p class="auth-desc">Vui lòng xác thực quyền quản trị hệ thống Relay</p>
-            <form id="loginForm">
-                <div class="input-group">
-                    <input type="text" id="username" placeholder="Username (admin)" required autocomplete="off">
-                </div>
-                <div class="input-group">
-                    <input type="password" id="admin_password" placeholder="Password (admin1234)" required>
-                </div>
-                <button type="submit" class="btn btn-neon">KẾT NỐI HỆ THỐNG</button>
-                <p id="errorMsg" class="error-msg"></p>
-            </form>
-        </div>
-    </div>
-
-    <!-- Giao diện Dashboard Chính -->
-    <div id="dashboardBox" class="dashboard-container" style="display: none;">
-        <!-- Header -->
-        <header class="dash-header">
-            <div class="logo-area">
-                <h1>VNLANDZ <span class="neon-text">RELAY NEXUS</span></h1>
-                <span class="status-pill"><span class="pulse-dot"></span> SYSTEM ONLINE</span>
-            </div>
-            <div class="user-actions">
-                <span id="ipDisplay" class="ip-tag">IP: --</span>
-                <button id="logoutBtn" class="btn btn-danger-outline">NGẮT KẾT NỐI</button>
-            </div>
-        </header>
-
-        <!-- Thống kê thông số (Metrics Cards) -->
-        <div class="metrics-grid">
-            <div class="metric-card">
-                <span class="metric-title">TỔNG CLIENT KEY</span>
-                <span id="statClients" class="metric-value">0</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">LỆNH CHỜ (QUEUE)</span>
-                <span id="statQueues" class="metric-value">0</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">TỔNG SỰ KIỆN (EVENTS)</span>
-                <span id="statEvents" class="metric-value">0</span>
-            </div>
-            <div class="metric-card">
-                <span class="metric-title">TRẠNG THÁI GHI NHỚ IP</span>
-                <span class="metric-value active-text">HOẠT ĐỘNG (7 NGÀY)</span>
-            </div>
-        </div>
-
-        <!-- Thanh điều khiển & Tìm kiếm -->
-        <div class="control-bar">
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm Client Key...">
-            </div>
-            <div class="action-buttons">
-                <label class="auto-refresh-label">
-                    <input type="checkbox" id="autoRefreshToggle" checked> Tự động làm mới (3s)
-                </label>
-                <button id="reloadBtn" class="btn btn-primary">LÀM MỚI NGAY</button>
-            </div>
-        </div>
-
-        <!-- Khu vực hiển thị Client Data -->
-        <div id="contentData" class="clients-grid">
-            <div class="loading-state">Đang quét luồng dữ liệu mạng...</div>
-        </div>
-    </div>
-
-    <script src="script.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VnlandZ Relay Nexus Pro</title>
+    <meta name="description" content="Cyberpunk-themed high-performance Relay Command Queue and Real-time Event Monitor for game clients and server bridges." />
+    <meta property="og:title" content="VnlandZ Relay Nexus Pro" />
+    <meta property="og:description" content="Cyberpunk-themed high-performance Relay Command Queue and Real-time Event Monitor for game clients and server bridges." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body class="bg-[#050814] text-slate-100 min-h-screen antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
+

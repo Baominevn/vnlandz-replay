@@ -17,6 +17,7 @@ module.exports = async (req, res) => {
   try {
     if (req.method === "GET") {
       const clientKey = readClientKey(req);
+      const sent = readUrlMessage(req);
 
       if (!clientKey) {
         return res.status(200).json({
@@ -25,9 +26,21 @@ module.exports = async (req, res) => {
           status: "online",
           usage: {
             poll: "GET /?clientKey=YOUR_KEY",
+            quickSend: "GET /send?clientKey=YOUR_KEY&message=xin%20chao",
+            quickDm: "GET /send?clientKey=YOUR_KEY&message=/chat%20-player%20xin%20chao",
             sendCommand: "POST / { clientKey, command }",
             sendMessage: "POST / { clientKey, message }"
           }
+        });
+      }
+
+      if (sent) {
+        const queued = pushMessage(clientKey, sent);
+        return res.status(200).json({
+          ok: true,
+          queued: true,
+          clientKey,
+          pending: queued.length
         });
       }
 
@@ -57,11 +70,7 @@ module.exports = async (req, res) => {
       const incoming = normalizeIncoming(body.command || body.message || body.text || body.content);
 
       if (incoming) {
-        const queue = queues.get(clientKey) || [];
-        queue.push(incoming);
-        while (queue.length > MAX_QUEUE) queue.shift();
-        queues.set(clientKey, queue);
-
+        const queue = pushMessage(clientKey, incoming);
         return res.status(200).json({
           ok: true,
           queued: true,
@@ -115,9 +124,30 @@ function readClientKey(req) {
   const url = new URL(req.url, "https://vnlandz-relay.local");
   return cleanKey(
     url.searchParams.get("clientKey")
+    || url.searchParams.get("key")
     || req.headers["x-vnlandz-client-key"]
     || ""
   );
+}
+
+function readUrlMessage(req) {
+  const url = new URL(req.url, "https://vnlandz-relay.local");
+  if (!url.pathname.toLowerCase().startsWith("/send")) return "";
+  return normalizeIncoming(
+    url.searchParams.get("message")
+    || url.searchParams.get("msg")
+    || url.searchParams.get("text")
+    || url.searchParams.get("command")
+    || ""
+  );
+}
+
+function pushMessage(clientKey, message) {
+  const queue = queues.get(clientKey) || [];
+  queue.push(message);
+  while (queue.length > MAX_QUEUE) queue.shift();
+  queues.set(clientKey, queue);
+  return queue;
 }
 
 function cleanKey(value) {

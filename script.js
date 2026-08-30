@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 errorMsg.innerText = data.error || "Xác thực thất bại!";
             }
         } catch {
-            errorMsg.innerText = "Lỗi kết nối mạng tuyến tính!";
+            errorMsg.innerText = "Lỗi kết nối tới Server!";
         }
     });
 
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Tìm kiếm trực tiếp client key
     searchInput.addEventListener("input", () => {
-        if (globalDataCache) {
+        if (globalDataCache && globalDataCache.clientsData) {
             renderClients(globalDataCache.clientsData, searchInput.value);
         }
     });
@@ -73,19 +73,22 @@ async function checkAuthAndLoad() {
     try {
         const res = await fetch("/admin/data");
         if (res.ok) {
+            loginBox.style.display = "none";
             dashboardBox.style.display = "block";
             await loadData(false);
         } else {
+            dashboardBox.style.display = "none";
             loginBox.style.display = "flex";
         }
     } catch {
+        dashboardBox.style.display = "none";
         loginBox.style.display = "flex";
     }
 }
 
 async function loadData(isManual = false) {
     const container = document.getElementById("contentData");
-    if (isManual) container.innerHTML = `<div class="loading-state">Đang làm mới dữ liệu...</div>`;
+    if (isManual && container) container.innerHTML = `<div class="loading-state">Đang làm mới dữ liệu...</div>`;
 
     try {
         const res = await fetch("/admin/data");
@@ -97,36 +100,45 @@ async function loadData(isManual = false) {
         const data = await res.json();
         globalDataCache = data;
 
-        // Cập nhật thẻ thông số (Metrics)
-        document.getElementById("statClients").innerText = data.stats.totalClients;
-        document.getElementById("ipDisplay").innerText = `IP: ${data.stats.activeIp}`;
+        // Cập nhật thông số
+        const elClients = document.getElementById("statClients");
+        const elIp = document.getElementById("ipDisplay");
+        const elQ = document.getElementById("statQueues");
+        const elE = document.getElementById("statEvents");
+
+        if (elClients) elClients.innerText = data.stats?.totalClients || 0;
+        if (elIp) elIp.innerText = `IP: ${data.stats?.activeIp || '127.0.0.1'}`;
 
         let totalQ = 0;
         let totalE = 0;
-        for (const val of Object.values(data.clientsData)) {
+        const clients = data.clientsData || {};
+        for (const val of Object.values(clients)) {
             totalQ += (val.queue || []).length;
             totalE += (val.events || []).length;
         }
-        document.getElementById("statQueues").innerText = totalQ;
-        document.getElementById("statEvents").innerText = totalE;
+        if (elQ) elQ.innerText = totalQ;
+        if (elE) elE.innerText = totalE;
 
-        // Render danh sách Client theo bộ lọc tìm kiếm hiện tại
-        const filterText = document.getElementById("searchInput").value;
-        renderClients(data.clientsData, filterText);
+        // Render danh sách Client theo bộ lọc tìm kiếm
+        const filterText = document.getElementById("searchInput")?.value || "";
+        renderClients(clients, filterText);
 
     } catch {
-        container.innerHTML = `<div class="empty-state" style="color: var(--neon-pink);">Lỗi khi đồng bộ dữ liệu từ Relay Server.</div>`;
+        if (container) {
+            container.innerHTML = `<div class="empty-state" style="color: var(--neon-pink);">Lỗi khi đồng bộ dữ liệu từ Relay Server.</div>`;
+        }
     }
 }
 
 function renderClients(clientsData, filter = "") {
     const container = document.getElementById("contentData");
+    if (!container) return;
+
     let html = "";
-    
-    const filteredKeys = Object.keys(clientsData).filter(key => key.toLowerCase().includes(filter.toLowerCase()));
+    const filteredKeys = Object.keys(clientsData || {}).filter(key => key.toLowerCase().includes(filter.toLowerCase()));
 
     for (const key of filteredKeys) {
-        const val = clientsData[key];
+        const val = clientsData[key] || { queue: [], events: [] };
         html += `
             <div class="client-box">
                 <div class="client-header">
@@ -158,7 +170,7 @@ function startAutoRefresh() {
     if (autoRefreshInterval) clearInterval(autoRefreshInterval);
     autoRefreshInterval = setInterval(() => {
         loadData(false);
-    }, 3000); // Tự động làm mới mỗi 3 giây
+    }, 3000);
 }
 
 function stopAutoRefresh() {

@@ -4,8 +4,8 @@ const events = globalThis.__vnlandzEvents || new Map();
 globalThis.__vnlandzQueues = queues;
 globalThis.__vnlandzEvents = events;
 
-const MAX_QUEUE = 25;
-const MAX_EVENTS = 50;
+const MAX_QUEUE = 50;
+const MAX_EVENTS = 100;
 
 module.exports = async (req, res) => {
   setCors(res);
@@ -15,35 +15,36 @@ module.exports = async (req, res) => {
   }
 
   try {
-    if (req.method === "GET") {
-      const clientKey = readClientKey(req);
-      const sent = readUrlMessage(req);
+    const url = new URL(req.url, "https://vnlandz-relay.local");
+    const pathname = url.pathname.toLowerCase();
+    const clientKey = getClientKey(url, req);
 
-      if (!clientKey) {
-        return res.status(200).json({
-          ok: true,
-          name: "VnlandZ Relay",
-          status: "online",
-          usage: {
-            poll: "GET /?clientKey=YOUR_KEY",
-            quickSend: "GET /send?clientKey=YOUR_KEY&message=xin%20chao",
-            quickDm: "GET /send?clientKey=YOUR_KEY&message=/chat%20-player%20xin%20chao",
-            sendCommand: "POST / { clientKey, command }",
-            sendMessage: "POST / { clientKey, message }"
-          }
-        });
-      }
+    // 1. Trang chủ / Hướng dẫn sử dụng
+    if (pathname === "/" && req.method === "GET" && !clientKey) {
+      return res.status(200).json({
+        ok: true,
+        name: "VnlandZ Relay Pro All-in-One",
+        status: "online",
+        version: "3.0",
+        endpoints: {
+          home: "GET /",
+          poll: "GET /poll?clientKey=YOUR_KEY",
+          send: "GET /send?clientKey=YOUR_KEY&message=hello hoặc POST /send { clientKey, message }",
+          pushEvent: "POST /events { clientKey, player, message, ... }"
+        }
+      });
+    }
 
-      if (sent) {
-        const queued = pushMessage(clientKey, sent);
-        return res.status(200).json({
-          ok: true,
-          queued: true,
-          clientKey,
-          pending: queued.length
-        });
-      }
+    // Kiểm tra clientKey bắt buộc cho các action bên dưới
+    if (!clientKey) {
+      return res.status(400).json({
+        ok: false,
+        error: "Missing or invalid clientKey"
+      });
+    }
 
+    // 2. Endpoint: /poll (Client gọi để lấy lệnh/tin nhắn tiếp theo)
+    if (pathname === "/poll" && req.method === "GET") {
       const queue = queues.get(clientKey) || [];
       const next = queue.shift() || "";
       queues.set(clientKey, queue);
@@ -56,17 +57,66 @@ module.exports = async (req, res) => {
       });
     }
 
-    if (req.method === "POST") {
-      const body = await readJson(req);
-      const clientKey = cleanKey(body.clientKey || readClientKey(req));
-
-      if (!clientKey) {
-        return res.status(400).json({
-          ok: false,
-          error: "Missing clientKey"
-        });
+    // 3. Endpoint: /send (Gửi nhanh qua GET hoặc POST)
+    if (pathname === "/send") {
+      let message = "";
+      if (req.method === "GET") {
+        message = url.searchParams.get("message") || url.searchParams.get("msg") || url.searchParams.get("text") || url.searchParams.get("command") || "";
+      } else if (req.method === "POST") {
+        const body = await readJson(req);
+        message = body.command || body.message || body.text || body.content || "";
       }
 
+      const normalized = normalizeIncoming(message);
+      if (!normalized) {
+        return res.status(400).json({ ok: false, error: "Missing message to send" });
+      }
+
+      const queue = pushMessage(clientKey, normalized);
+      return res.status(200).json({
+        ok: true,
+        queued: true,
+        clientKey,
+        pending: queue.length
+      });
+    }
+
+    // 4. Endpoint: /events hoặc /push (Nhận sự kiện log từ client/game)
+    if ((pathname === "/events" || pathname === "/push") && req.method === "POST") {
+      const body = await readJson(req);
+      const list = events.get(clientKey) || [];
+      
+      list.push({
+        time: new Date().toISOString(),
+        client: cleanText(body.client),
+        version: cleanText(body.version),
+        type: cleanText(body.type),
+        title: cleanText(body.title),
+        player: cleanText(body.player),
+        server: cleanText(body.server),
+        message: cleanText(body.message)
+      });
+
+      while (list.length > MAX_EVENTS) list.shift();
+      events.set(clientKey, list);
+
+      // Nếu sự kiện có gửi kèm message/command cần thực thi luôn, push vào queue luôn
+      const incoming = normalizeIncoming(body.command || body.message);
+      if (incoming && body.autoQueue) {
+        pushMessage(clientKey, incoming);
+      }
+
+      return res.status(200).json({
+        ok: true,
+        received: true,
+        clientKey,
+        eventsCount: list.length
+      });
+    }
+
+    // Tương thích ngược với code cũ: Nếu gọi POST thẳng vào root "/"
+    if (pathname === "/" && req.method === "POST") {
+      const body = await readJson(req);
       const incoming = normalizeIncoming(body.command || body.message || body.text || body.content);
 
       if (incoming) {
@@ -79,6 +129,7 @@ module.exports = async (req, res) => {
         });
       }
 
+      // Lưu event mặc định nếu không có message
       const list = events.get(clientKey) || [];
       list.push({
         time: new Date().toISOString(),
@@ -101,14 +152,15 @@ module.exports = async (req, res) => {
       });
     }
 
-    return res.status(405).json({
+    return res.status(404).json({
       ok: false,
-      error: "Method not allowed"
+      error: "Endpoint not found"
     });
+
   } catch (error) {
     return res.status(500).json({
       ok: false,
-      error: "Relay error"
+      error: "Internal Relay Error"
     });
   }
 };
@@ -120,24 +172,11 @@ function setCors(res) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
 }
 
-function readClientKey(req) {
-  const url = new URL(req.url, "https://vnlandz-relay.local");
+function getClientKey(url, req) {
   return cleanKey(
     url.searchParams.get("clientKey")
     || url.searchParams.get("key")
     || req.headers["x-vnlandz-client-key"]
-    || ""
-  );
-}
-
-function readUrlMessage(req) {
-  const url = new URL(req.url, "https://vnlandz-relay.local");
-  if (!url.pathname.toLowerCase().startsWith("/send")) return "";
-  return normalizeIncoming(
-    url.searchParams.get("message")
-    || url.searchParams.get("msg")
-    || url.searchParams.get("text")
-    || url.searchParams.get("command")
     || ""
   );
 }
@@ -161,7 +200,7 @@ function cleanText(value) {
   return String(value || "")
     .replace(/\r/g, "")
     .trim()
-    .slice(0, 240);
+    .slice(0, 500);
 }
 
 function normalizeIncoming(value) {
@@ -178,12 +217,10 @@ function normalizeIncoming(value) {
 function readJson(req) {
   return new Promise((resolve) => {
     let data = "";
-
     req.on("data", chunk => {
       data += chunk;
-      if (data.length > 8192) req.destroy();
+      if (data.length > 16384) req.destroy();
     });
-
     req.on("end", () => {
       if (!data.trim()) return resolve({});
       try {
@@ -192,7 +229,6 @@ function readJson(req) {
         resolve({});
       }
     });
-
     req.on("error", () => resolve({}));
   });
 }

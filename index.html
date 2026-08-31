@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" data-theme="cyberpunk">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,18 +9,27 @@
     <meta property="og:description" content="High-performance Minecraft Client Relay, Command Queue, and Real-time Discord Webhook Bridge with Immersive Console UI." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#00f2fe" />
+    <link rel="icon" type="image/png" href="https://mc-heads.net/avatar/MHF_Steve/64" />
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
+    <!-- Skinview3D for 3D Skin Renderer (I.3) -->
+    <script src="https://cdn.jsdelivr.net/npm/skinview3d@3.0.1/bundles/skinview3d.bundle.js"></script>
+
     <!-- Stylesheet -->
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
-    <!-- Cyber Background Animation -->
+    <!-- Cyber Background Atmosphere with Animated Orbs -->
     <div class="cyber-grid-bg"></div>
+    <div class="ambient-glow-orb ambient-orb-1"></div>
+    <div class="ambient-glow-orb ambient-orb-2"></div>
+    <div class="ambient-glow-orb ambient-orb-3"></div>
 
     <!-- 1. Authentication Box -->
     <div id="loginBox" class="auth-container">
@@ -29,7 +38,7 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
           </svg>
-          <span>REPLAY BRIDGE CONSOLE</span>
+          <span>REPLAY BRIDGE NEXUS</span>
         </div>
         <h2 class="neon-cyan" style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">XÁC THỰC QUẢN TRỊ</h2>
         <p class="auth-desc">Đăng nhập để điều khiển hàng đợi Replay Minecraft và kết nối Discord Webhook.</p>
@@ -57,11 +66,11 @@
         <div id="errorMsg" class="error-msg"></div>
         
         <div style="margin-top: 22px; font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--neon-green);">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--mc-green);">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          <span>Anti-Brute Force • Rate-Limited & Encrypted</span>
+          <span>Anti-Brute Force • Rate-Limited & End-to-End Logged</span>
         </div>
       </div>
     </div>
@@ -79,19 +88,30 @@
           </div>
           <div>
             <h1>Replay Bridge Console</h1>
-            <p id="headerSubtext" class="header-subtext">Node.js Engine • Real-time Discord Sync</p>
+            <p id="headerSubtext" class="header-subtext">Node.js Engine • Bi-directional WebSockets • Real-time Discord Sync</p>
           </div>
         </div>
 
         <div class="user-actions">
-          <div id="clientStatusBadge" class="status-pill">
-            <span id="clientStatusDot" class="pulse-dot"></span>
-            <span id="clientStatusText">0 Clients Active</span>
+          <!-- Theme Switcher (IV.5) -->
+          <div class="theme-selector" title="Chuyển đổi giao diện">
+            <button type="button" class="theme-btn active" data-theme="cyberpunk">Cyber</button>
+            <button type="button" class="theme-btn" data-theme="emerald">Emerald</button>
+            <button type="button" class="theme-btn" data-theme="midnight">Midnight</button>
+            <button type="button" class="theme-btn" data-theme="light">Light</button>
           </div>
+
+          <!-- WS Badge (I.1) -->
+          <div id="wsStatusBadge" class="status-pill">
+            <span id="wsStatusDot" class="pulse-dot"></span>
+            <span id="wsStatusText">WS: Kết nối...</span>
+          </div>
+
           <div id="discordHeaderBadge" class="status-pill discord">
             <span class="pulse-dot"></span>
-            <span>Discord Webhook Active</span>
+            <span>Discord Webhook</span>
           </div>
+
           <span id="ipDisplay" class="font-mono" style="color: var(--text-muted); font-size: 12px; margin-left: 4px;">IP: --</span>
           <button id="reloadBtn" class="btn btn-sm btn-outline" title="Làm mới dữ liệu">
             <span>🔄 Làm Mới</span>
@@ -102,104 +122,369 @@
         </div>
       </header>
 
-      <!-- Real Live Telemetry & Bridge Performance Parameters -->
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
-        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px;">
-          <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Server Runtime Metrics</div>
-          <div class="structure-item active" style="margin-bottom: 8px;">
-            <span style="color: #60a5fa;">Heap Memory: <strong id="statHeapMem" style="color:#ffffff;">-- MB</strong></span>
-            <span id="statNodeVerTag" class="status-micro-tag" style="background: rgba(88, 101, 242, 0.2); color: #818cf8;">NODE --</span>
+      <!-- Main Navigation Tabs -->
+      <nav class="main-nav-bar">
+        <button type="button" class="nav-tab-btn active" data-tab="tab-console" id="tabNavConsole">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">📡</span></span>
+          <span class="nav-tab-label">Trực Tiếp & Lệnh</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-keys" id="tabNavKeys">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">👥</span></span>
+          <span class="nav-tab-label">Quản Lý Keys</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-skin3d" id="tabNavSkin3d">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">🧍</span></span>
+          <span class="nav-tab-label">3D Skin Viewer</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-embed" id="tabNavEmbed">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">🎨</span></span>
+          <span class="nav-tab-label">Discord Embed & Bridge</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-analytics" id="tabNavAnalytics">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">📈</span></span>
+          <span class="nav-tab-label">Biểu Đồ Analytics</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-audit" id="tabNavAudit">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">🛡️</span></span>
+          <span class="nav-tab-label">Audit Logs</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn nav-tab-ai" data-tab="tab-ai" id="tabNavAi">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon ai-spin-icon">✨</span></span>
+          <span class="nav-tab-label">AI Gemini Studio</span>
+          <span class="nav-tab-ai-tag">3.7 FLASH</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-backup" id="tabNavBackup">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">⚙️</span></span>
+          <span class="nav-tab-label">Sao Lưu & Khôi Phục</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+      </nav>
+
+      <!-- ==========================================
+           TAB 1: LIVE CONSOLE & COMMAND DISPATCHER
+           ========================================== -->
+      <div id="tab-console" class="tab-pane active">
+        <!-- Real Live Telemetry & Bridge Performance Parameters -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px;">
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Server Runtime Metrics</div>
+            <div class="structure-item active" style="margin-bottom: 8px;">
+              <span style="color: #60a5fa;">Heap Memory: <strong id="statHeapMem" style="color:#ffffff;">-- MB</strong></span>
+              <span id="statNodeVerTag" class="status-micro-tag" style="background: rgba(88, 101, 242, 0.2); color: #818cf8;">NODE --</span>
+            </div>
+            <div class="structure-item active" style="margin-bottom: 8px;">
+              <span style="color: #4ade80;">Server Uptime: <strong id="statUptime" style="color:#ffffff;">--</strong></span>
+              <span class="status-micro-tag" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">ONLINE</span>
+            </div>
+            <div class="structure-item active">
+              <span style="color: #fb923c;">Total HTTP Requests: <strong id="statTotalReqs" style="color:#ffffff;">0</strong></span>
+              <span class="status-micro-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">PROCESSED</span>
+            </div>
           </div>
-          <div class="structure-item active" style="margin-bottom: 8px;">
-            <span style="color: #4ade80;">Server Uptime: <strong id="statUptime" style="color:#ffffff;">--</strong></span>
-            <span class="status-micro-tag" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">ONLINE</span>
-          </div>
-          <div class="structure-item active">
-            <span style="color: #fb923c;">Total HTTP Requests: <strong id="statTotalReqs" style="color:#ffffff;">0</strong></span>
-            <span class="status-micro-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">PROCESSED</span>
+
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Bridge Telemetry (Real-time)</div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
+                <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #22c55e;">
+                  <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Sync Rate</div>
+                  <div id="statSyncRate" style="color: #22c55e; font-weight: 700; font-size: 14px;">100%</div>
+                </div>
+                <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #5865F2;">
+                  <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Latency (RTT)</div>
+                  <div id="statDiscordLatency" style="color: #818cf8; font-weight: 700; font-size: 14px;">--</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px; font-family: 'JetBrains Mono', monospace;">
+              WebSocket Relay Engine: <span id="statPollStatus" style="color: #4ade80;">Active (Sub-5ms Sync)</span>
+            </div>
           </div>
         </div>
 
-        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between;">
-          <div>
-            <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Bridge Telemetry (Real-time)</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
-              <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #22c55e;">
-                <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Sync Rate</div>
-                <div id="statSyncRate" style="color: #22c55e; font-weight: 700; font-size: 14px;">100%</div>
-              </div>
-              <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #5865F2;">
-                <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Latency (RTT)</div>
-                <div id="statDiscordLatency" style="color: #818cf8; font-weight: 700; font-size: 14px;">--</div>
-              </div>
+        <!-- Metrics Grid -->
+        <section class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Clients Kết Nối</span>
+              <span style="font-size: 16px;">🔑</span>
+            </div>
+            <div id="statClients" class="metric-value">0</div>
+            <div class="metric-sub">Client Keys đang hoạt động</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Hàng Đợi Lệnh (Queue)</span>
+              <span style="font-size: 16px;">📦</span>
+            </div>
+            <div id="statQueues" class="metric-value" style="color: #fbbf24;">0</div>
+            <div class="metric-sub">Chờ Minecraft Client nhận</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Tổng Sự Kiện Nhận</span>
+              <span style="font-size: 16px;">⚡</span>
+            </div>
+            <div id="statEvents" class="metric-value" style="color: #4ade80;">0</div>
+            <div class="metric-sub">Chat, Join, Leave, Replay Logs</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-title">Discord Chuyển Tiếp</span>
+              <span style="font-size: 16px;">💬</span>
+            </div>
+            <div id="statDiscordForwards" class="metric-value" style="color: #818cf8;">0</div>
+            <div class="metric-sub">Sự kiện đã bắn sang Webhook</div>
+          </div>
+        </section>
+
+        <!-- Minecraft Command Dispatcher Card with History & Autocomplete (I.6) -->
+        <section class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #fbbf24; font-size: 18px;">🎮</span>
+              <span>Minecraft Command & Replay Controller</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+              Dùng phím ↑ ↓ để xem lịch sử • Tab / Enter để tự động hoàn thành lệnh
             </div>
           </div>
-          <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px; font-family: 'JetBrains Mono', monospace;">
-            Replay Sync Protocol: <span id="statPollStatus" style="color: #4ade80;">Active HTTP Polling & Event Relay</span>
+
+          <form id="commandForm">
+            <div class="command-form-grid">
+              <div>
+                <label class="input-label" for="targetKeyInput">CLIENT KEY TARGET</label>
+                <input type="text" id="targetKeyInput" placeholder="VD: vnlandz_main" required />
+              </div>
+
+              <div class="autocomplete-container">
+                <label class="input-label" for="commandTextInput">CÂU LỆNH / TIN NHẮN CHAT</label>
+                <input type="text" id="commandTextInput" placeholder="VD: /gamemode creative, /tp Steve Alex, /say Xin chao..." autocomplete="off" required />
+                
+                <!-- Autocomplete Dropdown (I.6) -->
+                <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+              </div>
+
+              <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-neon" style="height: 42px;">
+                  <span>🚀 Gửi Lệnh Vào Queue</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Preset Commands & Selectors -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+              <div class="quick-commands">
+                <span style="font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; align-self: center;">Mẫu Nhanh:</span>
+                <button type="button" class="quick-cmd-btn" data-cmd="/say [Relay] Xin chào toàn server!">[Relay] Say</button>
+                <button type="button" class="quick-cmd-btn" data-cmd="/gamemode creative">/gm creative</button>
+                <button type="button" class="quick-cmd-btn" data-cmd="/gamemode survival">/gm survival</button>
+                <button type="button" class="quick-cmd-btn" data-cmd="/time set day">/time day</button>
+                <button type="button" class="quick-cmd-btn" data-cmd="/weather clear">/weather clear</button>
+                <button type="button" class="quick-cmd-btn" data-cmd=".replay start">.replay start</button>
+                <button type="button" class="quick-cmd-btn" data-cmd=".replay stop">.replay stop</button>
+              </div>
+
+              <div style="max-width: 250px;">
+                <select id="clientSelect">
+                  <option value="">-- Chọn Client Key sẵn có --</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="cmdFeedback" style="font-size: 12.5px; margin-top: 10px; font-weight: 500;"></div>
+          </form>
+        </section>
+
+        <!-- Smart Filter & Search Bar with Export Actions (IV.3, IV.4) -->
+        <div class="control-bar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div style="display: flex; gap: 10px; flex: 1; max-width: 650px;">
+            <div class="search-box" style="flex: 1;">
+              <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm (Hỗ trợ Regex, Nickname, Chat, Lệnh)..." />
+            </div>
+            <select id="eventTypeFilter" style="max-width: 160px;">
+              <option value="ALL">Tất cả loại sự kiện</option>
+              <option value="CHAT">💬 Chat</option>
+              <option value="COMMAND">🎮 Command</option>
+              <option value="JOIN">🟢 Join</option>
+              <option value="LEAVE">🔴 Leave</option>
+              <option value="DEATH">☠️ Death / Sát thương</option>
+              <option value="LOG">📜 Logs</option>
+            </select>
           </div>
+
+          <!-- Data Export Buttons (IV.4) -->
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button type="button" id="exportJsonBtn" class="btn btn-sm btn-outline" title="Xuất dữ liệu dạng JSON">
+              <span>📄 Export JSON</span>
+            </button>
+            <button type="button" id="exportCsvBtn" class="btn btn-sm btn-outline" title="Xuất dữ liệu dạng CSV">
+              <span>📊 Export CSV</span>
+            </button>
+            <button type="button" id="exportLogsBtn" class="btn btn-sm btn-outline" title="Xuất raw log file">
+              <span>📋 Log TXT</span>
+            </button>
+            <label class="auto-refresh-label" style="margin-left: 8px;">
+              <input type="checkbox" id="autoRefreshToggle" checked />
+              <span>Auto Sync</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Clients List Container -->
+        <div id="contentData" class="clients-grid">
+          <div class="loading-state">Đang tải danh sách Client và Sự kiện...</div>
         </div>
       </div>
 
-      <!-- Metrics Grid (Immersive Tiles) -->
-      <section class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Clients Kết Nối</span>
-            <span style="font-size: 16px;">🔑</span>
-          </div>
-          <div id="statClients" class="metric-value">0</div>
-          <div class="metric-sub">Client Keys đang hoạt động</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Hàng Đợi Lệnh (Queue)</span>
-            <span style="font-size: 16px;">📦</span>
-          </div>
-          <div id="statQueues" class="metric-value" style="color: #fbbf24;">0</div>
-          <div class="metric-sub">Chờ Minecraft Client poll</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Tổng Sự Kiện Nhận</span>
-            <span style="font-size: 16px;">⚡</span>
-          </div>
-          <div id="statEvents" class="metric-value" style="color: #4ade80;">0</div>
-          <div class="metric-sub">Chat, Join, Leave, Replay Logs</div>
-        </div>
-
-        <div class="metric-card">
-          <div class="metric-header">
-            <span class="metric-title">Discord Chuyển Tiếp</span>
-            <span style="font-size: 16px;">💬</span>
-          </div>
-          <div id="statDiscordForwards" class="metric-value" style="color: #818cf8;">0</div>
-          <div class="metric-sub">Sự kiện đã bắn sang Webhook</div>
-        </div>
-      </section>
-
-      <!-- Discord Bridge Configuration Card -->
-      <section class="section-card">
-        <div class="section-header">
-          <div class="section-title">
-            <span style="color: #5865F2; font-size: 18px;">💬</span>
-            <span>Discord Webhook Bridge Configuration</span>
-          </div>
-          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
-            REAL-TIME SYNC • DISCORD API v10
-          </div>
-        </div>
-
-        <div class="discord-grid">
-          <div>
-            <label class="input-label" for="discordWebhookInput">DISCORD WEBHOOK ENDPOINT</label>
-            <div style="display: flex; gap: 8px;">
-              <input type="password" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/123456/abcdef..." />
-              <button id="toggleMaskWebhookBtn" class="btn btn-sm btn-outline" style="min-width: 90px;">Hiện Link</button>
+      <!-- ==========================================
+           TAB 2: MULTI-TENANT KEY MANAGEMENT (I.2)
+           ========================================== -->
+      <div id="tab-keys" class="tab-pane" style="display: none;">
+        <section class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #60a5fa; font-size: 18px;">👥</span>
+              <span>Quản Lý Đa Client Key (Multi-tenant Key Management)</span>
             </div>
-            
-            <div class="discord-toggle-grid">
+            <button type="button" id="openAddKeyModalBtn" class="btn btn-sm btn-neon">
+              <span>➕ Tạo Client Key Mới</span>
+            </button>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
+            Tạo và phân quyền các Client Key riêng biệt cho từng Bot, Replay Camera hoặc tài khoản người chơi trong Minecraft.
+          </p>
+
+          <div id="keysContainer" class="key-grid">
+            <div class="loading-state">Đang tải danh sách Client Keys...</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==========================================
+           TAB 3: 3D PLAYER SKIN VIEWER (I.3)
+           ========================================== -->
+      <div id="tab-skin3d" class="tab-pane" style="display: none;">
+        <section class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #10b981; font-size: 18px;">🧍</span>
+              <span>Interactive 3D Minecraft Skin Viewer</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+              REAL-TIME WEBGL RENDERING
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div class="skin-viewer-wrapper">
+              <div id="skinCanvasContainer" class="skin-canvas-container">
+                <canvas id="skinCanvas" width="240" height="280"></canvas>
+              </div>
+
+              <div class="skin-controls">
+                <button type="button" id="skinAnimWalk" class="btn btn-sm btn-outline">🚶 Đi bộ</button>
+                <button type="button" id="skinAnimRun" class="btn btn-sm btn-outline">🏃 Chạy</button>
+                <button type="button" id="skinAnimFly" class="btn btn-sm btn-outline">🚀 Bay</button>
+                <button type="button" id="skinAnimRotate" class="btn btn-sm btn-neon">🔄 Xoay Tự Động</button>
+                <button type="button" id="skinAnimPause" class="btn btn-sm btn-outline">⏸️ Dừng</button>
+              </div>
+            </div>
+
+            <div>
+              <div class="input-group">
+                <label class="input-label" for="skinPlayerInput">TÊN NGƯỜI CHƠI (MINECRAFT NICKNAME)</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="text" id="skinPlayerInput" placeholder="VD: Notch, Steve, Dream, MHF_Steve..." value="Steve" />
+                  <button type="button" id="loadSkinBtn" class="btn btn-neon">Tải Skin 3D</button>
+                </div>
+              </div>
+
+              <div style="margin-top: 16px;">
+                <label class="input-label">CHỌN NHANH TỪ LOGS GẦN ĐÂY:</label>
+                <div id="quickPlayersList" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                  <button type="button" class="quick-cmd-btn" data-player="Steve">Steve</button>
+                  <button type="button" class="quick-cmd-btn" data-player="Alex">Alex</button>
+                  <button type="button" class="quick-cmd-btn" data-player="Notch">Notch</button>
+                  <button type="button" class="quick-cmd-btn" data-player="Dream">Dream</button>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px; background: rgba(0,0,0,0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+                💡 Bạn có thể dùng chuột trái để xoay góc nhìn 360 độ, chuột phải để di chuyển và con lăn để zoom gần/xa mô hình nhân vật.
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==========================================
+           TAB 4: DISCORD EMBED BUILDER & INBOUND BRIDGE (II.1, II.2)
+           ========================================== -->
+      <div id="tab-embed" class="tab-pane" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          
+          <!-- Visual Embed Builder Settings -->
+          <section class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span style="color: #5865F2; font-size: 18px;">🎨</span>
+                <span>Tùy Biến Embed Discord Visual Builder (II.2)</span>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="discordWebhookInput">DISCORD WEBHOOK ENDPOINT</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="password" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/..." />
+                <button id="toggleMaskWebhookBtn" class="btn btn-sm btn-outline" style="min-width: 90px;">Hiện Link</button>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="embedThemeColorInput">MÀU CHỦ ĐẠO EMBED (HEX CODE)</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="color" id="embedColorPicker" value="#00f2fe" style="width: 44px; height: 38px; border-radius: 6px; border: none; cursor: pointer; background: transparent;" />
+                <input type="text" id="embedThemeColorInput" value="#00f2fe" placeholder="#00f2fe" style="flex: 1;" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="embedBotTitleInput">TÊN BOT / WEBHOOK HIỂN THỊ</label>
+              <input type="text" id="embedBotTitleInput" value="Minecraft Relay Nexus" placeholder="Minecraft Relay Nexus" />
+            </div>
+
+            <div class="input-group">
+              <label class="input-label" for="embedFooterTextInput">NỘI DUNG FOOTER</label>
+              <input type="text" id="embedFooterTextInput" value="VnlandZ Relay Bridge • Real-time Sync" placeholder="Footer text..." />
+            </div>
+
+            <div style="margin-top: 14px;">
+              <label class="toggle-card">
+                <span>Tự động hiển thị Avatar Head của Player Minecraft</span>
+                <input type="checkbox" id="toggleShowPlayerAvatar" checked />
+              </label>
+            </div>
+
+            <div class="discord-toggle-grid" style="margin-top: 14px;">
               <label class="toggle-card">
                 <span>Chuyển tiếp tất cả</span>
                 <input type="checkbox" id="toggleForwardEvents" checked />
@@ -221,143 +506,302 @@
                 <input type="checkbox" id="toggleForwardCommands" checked />
               </label>
             </div>
-          </div>
 
-          <div style="display: flex; flex-direction: column; justify-content: space-between;">
-            <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6; background: rgba(0, 0, 0, 0.5); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
-              💡 <strong>Hướng dẫn:</strong> Vào Server Discord của bạn ➔ Kênh Chat ➔ Chỉnh sửa kênh ➔ <em>Tích hợp (Integrations)</em> ➔ <em>Tạo Webhook</em> ➔ Sao chép URL và dán vào đây.
-            </div>
-
-            <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
-              <button id="saveDiscordBtn" class="btn btn-discord">
-                <span>💾 Lưu Cài Đặt Discord</span>
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+              <button id="saveDiscordBtn" class="btn btn-discord" style="flex: 1;">
+                <span>💾 Lưu Cấu Hình Embed</span>
               </button>
               <button id="testDiscordBtn" class="btn btn-outline">
-                <span>⚡ Gửi Tin Nhắn Test</span>
+                <span>⚡ Gửi Tin Test</span>
               </button>
             </div>
+
+            <div id="discordSaveStatus" style="font-size: 12.5px; margin-top: 10px; font-weight: 500;"></div>
+          </section>
+
+          <!-- Discord Embed Live Preview & Inbound Bridge Tester (II.1) -->
+          <div>
+            <section class="section-card">
+              <div class="section-header">
+                <div class="section-title">
+                  <span style="color: #818cf8; font-size: 18px;">👁️</span>
+                  <span>Discord Live Embed Preview</span>
+                </div>
+              </div>
+
+              <!-- Live Discord Message Box -->
+              <div class="discord-preview-card">
+                <div class="discord-embed-author">
+                  <img id="previewAuthorAvatar" src="https://mc-heads.net/avatar/MHF_Steve/64" alt="Steve" style="width: 24px; height: 24px; border-radius: 50%;" />
+                  <span id="previewBotTitle">Minecraft Relay Nexus</span>
+                  <span class="status-micro-tag" style="background: #5865F2; color: #ffffff; padding: 1px 4px;">BOT</span>
+                </div>
+
+                <div id="previewEmbedBox" class="discord-embed-box">
+                  <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ffffff; margin-bottom: 4px;">
+                    <img id="previewPlayerHead" src="https://mc-heads.net/avatar/Steve/32" alt="Player" style="width: 16px; height: 16px; border-radius: 2px;" />
+                    <span id="previewPlayerName">Steve • mc.hypixel.net</span>
+                  </div>
+                  <div id="previewEmbedTitle" class="discord-embed-title">💬 [CHAT] Minecraft Chat Message</div>
+                  <div class="discord-embed-desc">```fix&#10;Hello Discord from Minecraft Relay!&#10;```</div>
+                  <div id="previewEmbedFooter" class="discord-embed-footer">
+                    <img src="https://mc-heads.net/avatar/MHF_Chest/32" alt="Icon" style="width: 12px; height: 12px;" />
+                    <span id="previewFooterText">VnlandZ Relay Bridge • Real-time Sync</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Discord to Minecraft Bridge Tester (II.1) -->
+            <section class="section-card" style="margin-top: 16px;">
+              <div class="section-header">
+                <div class="section-title">
+                  <span style="color: #22c55e; font-size: 18px;">🔄</span>
+                  <span>Discord ➔ Minecraft Bridge (II.1)</span>
+                </div>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                Nhận tin nhắn từ Discord bot hoặc webhook và đẩy trực tiếp vào game Minecraft dạng `/tellraw`.
+              </p>
+
+              <form id="discordToMcForm">
+                <div class="input-group">
+                  <label class="input-label" for="d2mcAuthor">TÊN USER DISCORD</label>
+                  <input type="text" id="d2mcAuthor" value="Admin_Discord" required />
+                </div>
+                <div class="input-group">
+                  <label class="input-label" for="d2mcChannel">TÊN KÊNH (#CHANNEL)</label>
+                  <input type="text" id="d2mcChannel" value="general" required />
+                </div>
+                <div class="input-group">
+                  <label class="input-label" for="d2mcContent">NỘI DUNG TIN NHẮN TỪ DISCORD</label>
+                  <input type="text" id="d2mcContent" placeholder="Nhập tin nhắn cần gửi vào Minecraft..." required />
+                </div>
+                <button type="submit" class="btn btn-neon" style="width: 100%;">
+                  <span>🚀 Bắn Tin Nhắn Từ Discord Vào Minecraft</span>
+                </button>
+                <div id="d2mcFeedback" style="font-size: 12px; margin-top: 8px;"></div>
+              </form>
+            </section>
           </div>
-        </div>
-
-        <div id="discordSaveStatus" style="font-size: 12.5px; margin-top: 12px; font-weight: 500;"></div>
-      </section>
-
-      <!-- Minecraft Command Dispatcher Card -->
-      <section class="section-card">
-        <div class="section-header">
-          <div class="section-title">
-            <span style="color: #fbbf24; font-size: 18px;">🎮</span>
-            <span>Minecraft Command & Replay Controller</span>
-          </div>
-          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
-            COMMAND QUEUE DISPATCHER
-          </div>
-        </div>
-
-        <form id="commandForm">
-          <div class="command-form-grid">
-            <div>
-              <label class="input-label" for="targetKeyInput">CLIENT KEY TARGET</label>
-              <input type="text" id="targetKeyInput" placeholder="VD: my-client-key" required />
-            </div>
-
-            <div>
-              <label class="input-label" for="commandTextInput">CÂU LỆNH / TIN NHẮN CHAT</label>
-              <input type="text" id="commandTextInput" placeholder="VD: /say Xin chao Discord! hoac .replay start" required />
-            </div>
-
-            <div style="display: flex; align-items: flex-end;">
-              <button type="submit" class="btn btn-neon" style="height: 42px;">
-                <span>🚀 Gửi Lệnh Vào Queue</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Preset Commands & Selectors -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
-            <div class="quick-commands">
-              <span style="font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; align-self: center;">Mẫu Nhanh:</span>
-              <button type="button" class="quick-cmd-btn" data-cmd="/say [Discord] Xin chào từ Relay!">[Discord] Say</button>
-              <button type="button" class="quick-cmd-btn" data-cmd="/gamemode creative">/gm creative</button>
-              <button type="button" class="quick-cmd-btn" data-cmd="/time set day">/time day</button>
-              <button type="button" class="quick-cmd-btn" data-cmd="/weather clear">/weather clear</button>
-              <button type="button" class="quick-cmd-btn" data-cmd=".replay start">.replay start</button>
-              <button type="button" class="quick-cmd-btn" data-cmd=".replay stop">.replay stop</button>
-            </div>
-
-            <div style="max-width: 250px;">
-              <select id="clientSelect">
-                <option value="">-- Chọn Client Key sẵn có --</option>
-              </select>
-            </div>
-          </div>
-
-          <div id="cmdFeedback" style="font-size: 12.5px; margin-top: 10px; font-weight: 500;"></div>
-        </form>
-      </section>
-
-      <!-- Control Bar -->
-      <div class="control-bar">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm theo Client Key, Tên Player hoặc Tin nhắn..." />
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 14px;">
-          <label class="auto-refresh-label">
-            <input type="checkbox" id="autoRefreshToggle" checked />
-            <span>Tự động làm mới (3s)</span>
-          </label>
         </div>
       </div>
 
-      <!-- Clients List Container -->
-      <div id="contentData" class="clients-grid">
-        <div class="loading-state">Đang tải danh sách Client và Sự kiện...</div>
+      <!-- ==========================================
+           TAB 5: REAL-TIME ANALYTICS (IV.1)
+           ========================================== -->
+      <div id="tab-analytics" class="tab-pane" style="display: none;">
+        <section class="chart-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #00f2fe; font-size: 18px;">📈</span>
+              <span>Lưu Lượng Truyền Tải Thời Gian Thực (Real-time Throughput)</span>
+            </div>
+            <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+              LIVE TELEMETRY WAVEFORM
+            </div>
+          </div>
+          <canvas id="analyticsChartCanvas" class="chart-canvas" width="800" height="140"></canvas>
+          <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+            <div style="display: flex; gap: 14px;">
+              <span><strong style="color: #00f2fe;">■</strong> HTTP Requests</span>
+              <span><strong style="color: #4ade80;">■</strong> Events Pushed</span>
+              <span><strong style="color: #818cf8;">■</strong> WS Messages</span>
+            </div>
+            <div>Cập nhật: <span style="color: #22c55e;">Mỗi giây</span></div>
+          </div>
+        </section>
       </div>
 
-      <!-- Minecraft Mod / Replay Integration Guide -->
-      <section class="section-card" style="margin-top: 24px;">
-        <div class="section-header">
-          <div class="section-title">
-            <span style="color: #38bdf8; font-size: 18px;">🔌</span>
-            <span>Integration Protocol Documentation</span>
+      <!-- ==========================================
+           TAB 6: AUDIT LOGS (III.3)
+           ========================================== -->
+      <div id="tab-audit" class="tab-pane" style="display: none;">
+        <section class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #f59e0b; font-size: 18px;">🛡️</span>
+              <span>Nhật Ký Kiểm Toán Hệ Thống (Audit Logs)</span>
+            </div>
+            <button type="button" id="reloadAuditBtn" class="btn btn-sm btn-outline">
+              <span>🔄 Làm Mới Logs</span>
+            </button>
           </div>
-          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">REST API SPEC</div>
-        </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Ghi nhận toàn bộ thao tác bảo mật: Đăng nhập, thay đổi Webhook, đẩy lệnh vào Minecraft, xoá hàng đợi và khôi phục dữ liệu.
+          </p>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <div>
-            <h4 style="font-size: 12.5px; color: #38bdf8; margin-bottom: 6px; font-weight: 600;">1. Client Poll Lệnh Từ Server:</h4>
-            <p style="font-size: 12px; color: var(--text-muted);">Minecraft Client gửi GET định kỳ 1s để nhận lệnh thực thi:</p>
-            <div class="code-box">
-              GET /poll?clientKey=TEN_KEY<br>
-              // Response: { "ok": true, "command": "/say Hello" }
+          <div class="audit-table-wrap">
+            <table class="audit-table">
+              <thead>
+                <tr>
+                  <th>Thời Gian</th>
+                  <th>Địa Chỉ IP</th>
+                  <th>Hành Động</th>
+                  <th>Mức Độ</th>
+                  <th>Chi Tiết</th>
+                </tr>
+              </thead>
+              <tbody id="auditTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Đang tải dữ liệu kiểm toán...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==========================================
+           TAB 7: AI GEMINI STUDIO (V.5)
+           ========================================== -->
+      <div id="tab-ai" class="tab-pane" style="display: none;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+          
+          <!-- AI Summarizer -->
+          <section class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span style="color: #00f2fe; font-size: 18px;">✨</span>
+                <span>AI Phân Tích & Tóm Tắt Phiên Chơi</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Gemini 3.7 Flash phân tích thông minh các sự kiện chat, tử vong, PvP và các lệnh đã thực thi để tạo báo cáo tổng quan.
+            </p>
+
+            <button type="button" id="btnAiSummarize" class="btn btn-neon" style="width: 100%;">
+              <span>⚡ Tạo Báo Cáo AI Tóm Tắt Ngay</span>
+            </button>
+
+            <div id="aiSummarizeOutput" style="margin-top: 16px; min-height: 120px; background: rgba(0,0,0,0.5); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12.5px; line-height: 1.6; color: #e2e8f0; white-space: pre-wrap;">
+              _Nhấn nút trên để AI bắt đầu phân tích dữ liệu Relay Logs gần nhất..._
+            </div>
+          </section>
+
+          <!-- AI Toxicity / Chat Filter -->
+          <section class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span style="color: #ef4444; font-size: 18px;">🛡️</span>
+                <span>AI Kiểm Duyệt & Lọc Chat Vi Phạm</span>
+              </div>
+            </div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+              Phát hiện ngôn từ độc hại, spam quảng cáo hoặc nguy cơ lộ toạ độ căn cứ bí mật.
+            </p>
+
+            <div class="input-group">
+              <label class="input-label" for="aiFilterInput">ĐOẠN CHAT CẦN KIỂM DUYỆT</label>
+              <textarea id="aiFilterInput" rows="3" placeholder="Nhập câu chat hoặc nội dung cần kiểm tra..." style="width: 100%;"></textarea>
+            </div>
+
+            <button type="button" id="btnAiFilterCheck" class="btn btn-outline" style="width: 100%;">
+              <span>🔍 Kiểm Duyệt Với Gemini AI</span>
+            </button>
+
+            <div id="aiFilterOutput" style="margin-top: 14px; display: none; background: rgba(0,0,0,0.4); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px;"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 8: BACKUP & RESTORE (VI.1, VI.4)
+           ========================================== -->
+      <div id="tab-backup" class="tab-pane" style="display: none;">
+        <section class="section-card">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #fbbf24; font-size: 18px;">⚙️</span>
+              <span>Sao Lưu, Khôi Phục & Lưu Trữ Bền Vững (VI.1, VI.4)</span>
             </div>
           </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 18px;">
+            Hệ thống tự động lưu trữ trạng thái vào file bền vững `data/store.json`. Bạn cũng có thể xuất file sao lưu hoặc tải file lên để phục hồi toàn bộ cấu hình.
+          </p>
 
-          <div>
-            <h4 style="font-size: 12.5px; color: #4ade80; margin-bottom: 6px; font-weight: 600;">2. Client Bắn Sự Kiện Sang Discord:</h4>
-            <p style="font-size: 12px; color: var(--text-muted);">Gửi POST khi có Chat, Replay hoặc sự kiện:</p>
-            <div class="code-box">
-              POST /events?clientKey=TEN_KEY<br>
-              Content-Type: application/json<br>
-              { "type": "CHAT", "player": "Steve", "server": "mc.hypixel.net", "message": "Hello Discord!" }
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="background: rgba(0,0,0,0.4); padding: 18px; border-radius: 10px; border: 1px solid var(--border-color);">
+              <h3 style="font-size: 14px; font-weight: 700; color: #60a5fa; margin-bottom: 8px;">1. Xuất Bản Sao Lưu (Backup)</h3>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Tải về toàn bộ cấu hình Webhook, danh sách Client Keys, Embed Settings và Audit Logs dạng file JSON.
+              </p>
+              <button type="button" id="downloadBackupBtn" class="btn btn-neon">
+                <span>📥 Tải File Backup (.json)</span>
+              </button>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.4); padding: 18px; border-radius: 10px; border: 1px solid var(--border-color);">
+              <h3 style="font-size: 14px; font-weight: 700; color: #4ade80; margin-bottom: 8px;">2. Khôi Phục Dữ Liệu (Restore)</h3>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Chọn file backup `.json` từ máy của bạn để khôi phục trạng thái.
+              </p>
+              <input type="file" id="restoreFileInput" accept=".json" style="display: none;" />
+              <button type="button" id="triggerRestoreBtn" class="btn btn-outline">
+                <span>📤 Chọn File Để Khôi Phục</span>
+              </button>
+              <div id="restoreStatusMsg" style="font-size: 12px; margin-top: 10px;"></div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <!-- Footer (Immersive Console) -->
       <footer class="console-footer">
         <div style="display: flex; align-items: center; gap: 18px;">
           <div><span style="color: var(--text-dim);">PROJECT:</span> <span style="color: #ffffff; font-family: 'JetBrains Mono', monospace;">mc-replay-discord-bridge</span></div>
-          <div><span style="color: var(--text-dim);">ENV:</span> <span style="color: #fb923c; font-family: 'JetBrains Mono', monospace;">production</span></div>
+          <div><span style="color: var(--text-dim);">ENGINE:</span> <span style="color: #00f2fe; font-family: 'JetBrains Mono', monospace;">Node.js + WebSockets v2.5</span></div>
         </div>
         <div>
-          <span>VnlandZ Replay Bridge • Vercel Deployment Preserved</span>
+          <span>VnlandZ Replay Nexus • Real-time AI Bridge</span>
         </div>
       </footer>
 
+    </div>
+
+    <!-- Modal: Add / Edit Client Key (I.2) -->
+    <div id="keyModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="section-header" style="margin-bottom: 16px;">
+          <div class="section-title">
+            <span style="color: #00f2fe; font-size: 18px;">🔑</span>
+            <span id="keyModalTitle">Tạo Client Key Mới</span>
+          </div>
+          <button type="button" id="closeKeyModalBtn" class="btn btn-sm btn-outline">✕</button>
+        </div>
+
+        <form id="keyForm">
+          <div class="input-group">
+            <label class="input-label" for="modalKeyInput">CLIENT KEY ID (Duy nhất, không dấu cách)</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" id="modalKeyInput" placeholder="VD: bot_afk_farm, replay_drone" required />
+              <button type="button" id="genRandomKeyBtn" class="btn btn-sm btn-outline">Tạo Ngẫu Nhiên</button>
+            </div>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="modalLabelInput">TÊN GỢI NHỚ (LABEL)</label>
+            <input type="text" id="modalLabelInput" placeholder="VD: Main AFK Bot, Replay Drone Cam" required />
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="modalStatusSelect">TRẠNG THÁI HOẠT ĐỘNG</label>
+            <select id="modalStatusSelect">
+              <option value="active">🟢 Đang hoạt động (Active)</option>
+              <option value="readonly">🟡 Chỉ đọc (Read-only)</option>
+              <option value="disabled">🔴 Tạm vô hiệu hóa (Disabled)</option>
+            </select>
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="modalNotesInput">GHI CHÚ (TÙY CHỌN)</label>
+            <input type="text" id="modalNotesInput" placeholder="Mục đích sử dụng key này..." />
+          </div>
+
+          <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button type="button" id="cancelKeyModalBtn" class="btn btn-outline">Hủy</button>
+            <button type="submit" class="btn btn-neon">Lưu Client Key</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Main Frontend Script -->

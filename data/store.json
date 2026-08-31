@@ -1,0 +1,38 @@
+{
+  "savedAt": "2026-08-31T17:01:26.592Z",
+  "config": {
+    "discordWebhookUrl": "https://discord.com/api/webhooks/1536389560639168624/1FL-FG2PJf9KGiHgw30FUFACA3lnikNMttXhK2eVXPOHA4mWreH9Qh9mx37Dym1OqP6D",
+    "forwardEventsToDiscord": true,
+    "forwardChat": true,
+    "forwardJoinLeave": true,
+    "forwardDeaths": true,
+    "forwardCommands": true,
+    "embedConfig": {
+      "themeColor": "#00f2fe",
+      "authorIcon": "https://mc-heads.net/avatar/MHF_Steve/128",
+      "customTitle": "Minecraft Relay Nexus",
+      "footerText": "VnlandZ Relay Bridge • Real-time Sync",
+      "showPlayerAvatar": true
+    }
+  },
+  "clientKeys": [],
+  "queues": {},
+  "events": {},
+  "auditLogs": [
+    {
+      "id": "aud_66730abca35d",
+      "time": "2026-08-31T17:01:25.590Z",
+      "ip": "42.115.42.2",
+      "action": "LOGIN_SUCCESS",
+      "details": "Đăng nhập thành công với tài khoản: admin",
+      "severity": "info"
+    }
+  ],
+  "discordStats": {
+    "forwarded": 0,
+    "failed": 0,
+    "lastSent": null,
+    "lastError": null,
+    "lastLatencyMs": null
+  }
+}

@@ -1,4 +1,4 @@
-:root {
+:root, [data-theme="cyberpunk"] {
     --bg-color: #0a0c10;
     --bg-terminal: #000000;
     --card-bg: #11141b;
@@ -20,11 +20,60 @@
     --amber-warning: #f59e0b;
     --rose-danger: #ef4444;
     --cyan-accent: #00f2fe;
+    --pink-accent: #ff007f;
     
     --text-white: #ffffff;
     --text-main: #e0e0e0;
     --text-muted: #9ca3af;
     --text-dim: #6b7280;
+}
+
+[data-theme="emerald"] {
+    --bg-color: #04130d;
+    --bg-terminal: #020a06;
+    --card-bg: #072218;
+    --card-bg-gradient: linear-gradient(180deg, #072218 0%, #04130d 100%);
+    --card-hover: #0c3325;
+    --border-color: rgba(34, 197, 94, 0.2);
+    --border-subtle: rgba(34, 197, 94, 0.1);
+    --cyan-accent: #10b981;
+    --pink-accent: #84cc16;
+    --text-white: #ffffff;
+    --text-main: #d1fae5;
+    --text-muted: #6ee7b7;
+    --text-dim: #059669;
+}
+
+[data-theme="midnight"] {
+    --bg-color: #070714;
+    --bg-terminal: #03030a;
+    --card-bg: #0e0e24;
+    --card-bg-gradient: linear-gradient(180deg, #0e0e24 0%, #070714 100%);
+    --card-hover: #151538;
+    --border-color: rgba(139, 92, 246, 0.25);
+    --border-subtle: rgba(139, 92, 246, 0.1);
+    --cyan-accent: #a855f7;
+    --pink-accent: #ec4899;
+    --text-white: #ffffff;
+    --text-main: #e2e8f0;
+    --text-muted: #cbd5e1;
+    --text-dim: #64748b;
+}
+
+[data-theme="light"] {
+    --bg-color: #f8fafc;
+    --bg-terminal: #ffffff;
+    --card-bg: #ffffff;
+    --card-bg-gradient: linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%);
+    --card-hover: #f8fafc;
+    --border-color: #e2e8f0;
+    --border-subtle: #cbd5e1;
+    --cyan-accent: #0284c7;
+    --pink-accent: #e11d48;
+    --text-white: #0f172a;
+    --text-main: #334155;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
 }
 
 * {
@@ -48,20 +97,67 @@ body {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background-image: 
-        radial-gradient(circle at 50% 0%, rgba(88, 101, 242, 0.12) 0%, transparent 65%),
-        radial-gradient(circle at 100% 100%, rgba(78, 154, 6, 0.08) 0%, transparent 55%),
-        linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
-    z-index: -1;
+        radial-gradient(circle at 50% 0%, rgba(88, 101, 242, 0.14) 0%, transparent 65%),
+        radial-gradient(circle at 100% 100%, rgba(78, 154, 6, 0.1) 0%, transparent 55%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 36px 36px, 36px 36px;
+    z-index: -2;
     pointer-events: none;
 }
 
-/* Keyframe Animations */
+/* Ambient Floating Glow Orbs */
+.ambient-glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.26;
+    pointer-events: none;
+    z-index: -1;
+    animation: floatOrb 20s ease-in-out infinite alternate;
+}
+
+.ambient-orb-1 {
+    top: 4%;
+    left: 12%;
+    width: 440px;
+    height: 440px;
+    background: radial-gradient(circle, rgba(88, 101, 242, 0.85) 0%, rgba(0, 242, 254, 0.25) 60%, transparent 100%);
+    animation-duration: 22s;
+}
+
+.ambient-orb-2 {
+    bottom: 8%;
+    right: 8%;
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.7) 0%, rgba(78, 154, 6, 0.2) 65%, transparent 100%);
+    animation-duration: 26s;
+    animation-delay: -7s;
+}
+
+.ambient-orb-3 {
+    top: 45%;
+    left: 45%;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(236, 72, 153, 0.45) 0%, rgba(168, 85, 247, 0.25) 60%, transparent 100%);
+    transform: translate(-50%, -50%);
+    animation-duration: 30s;
+    animation-delay: -14s;
+}
+
+/* Dynamic Keyframe Animations */
+@keyframes floatOrb {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(45px, -35px) scale(1.14); }
+    100% { transform: translate(-35px, 45px) scale(0.92); }
+}
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(14px);
+        transform: translateY(16px);
     }
     to {
         opacity: 1;
@@ -69,15 +165,47 @@ body {
     }
 }
 
+@keyframes tabEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(14px) scale(0.985);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
 @keyframes pulseGlow {
     0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px currentColor; }
+    50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px currentColor; }
     100% { transform: scale(0.95); opacity: 0.8; }
 }
 
+@keyframes pulseRadar {
+    0% { transform: scale(1); opacity: 0.8; }
+    70% { transform: scale(2.4); opacity: 0; }
+    100% { transform: scale(1); opacity: 0; }
+}
+
+@keyframes shimmerRay {
+    0% { transform: translateX(-150%) skewX(-20deg); }
+    100% { transform: translateX(250%) skewX(-20deg); }
+}
+
 @keyframes badgeGlow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.75; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(0.98); }
+}
+
+@keyframes gentleRotate {
+    0% { transform: rotate(-10deg) scale(0.95); }
+    100% { transform: rotate(15deg) scale(1.2); }
+}
+
+@keyframes borderGlowPulse {
+    0%, 100% { border-color: rgba(255, 255, 255, 0.1); }
+    50% { border-color: rgba(0, 242, 254, 0.4); }
 }
 
 /* Typography Utility */
@@ -184,8 +312,9 @@ input:focus, select:focus, textarea:focus {
     background: rgba(0, 0, 0, 0.75);
 }
 
-/* Immersive Button System */
+/* Immersive Button System with Shimmer & Micro-Interactions */
 .btn {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -198,9 +327,14 @@ input:focus, select:focus, textarea:focus {
     font-weight: 600;
     letter-spacing: 0.3px;
     border: 1px solid transparent;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: nowrap;
     user-select: none;
+    overflow: hidden;
+}
+
+.btn:active {
+    transform: scale(0.96);
 }
 
 .btn-sm {
@@ -212,37 +346,59 @@ input:focus, select:focus, textarea:focus {
 .btn-neon {
     background: linear-gradient(135deg, var(--discord-blurple) 0%, #4752C4 100%);
     color: #ffffff;
-    box-shadow: 0 0 15px rgba(88, 101, 242, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 16px rgba(88, 101, 242, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.btn-neon::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -150%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+    transform: skewX(-20deg);
+    transition: none;
+    pointer-events: none;
 }
 
 .btn-neon:hover {
-    box-shadow: 0 0 25px rgba(88, 101, 242, 0.6);
-    transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(88, 101, 242, 0.7);
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+.btn-neon:hover::after {
+    left: 200%;
+    transition: left 0.75s ease-in-out;
 }
 
 .btn-discord {
     background: linear-gradient(135deg, var(--discord-blurple) 0%, #4752C4 100%);
     color: white;
-    box-shadow: 0 0 15px rgba(88, 101, 242, 0.35);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 16px rgba(88, 101, 242, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .btn-discord:hover {
-    box-shadow: 0 0 22px rgba(88, 101, 242, 0.65);
-    transform: translateY(-1px);
+    box-shadow: 0 0 26px rgba(88, 101, 242, 0.75);
+    transform: translateY(-2px);
 }
 
 .btn-outline {
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--border-color);
     color: var(--text-main);
+    backdrop-filter: blur(8px);
 }
 
 .btn-outline:hover {
-    border-color: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.3);
     color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.09);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
 
 .btn-danger-outline {
@@ -252,10 +408,11 @@ input:focus, select:focus, textarea:focus {
 }
 
 .btn-danger-outline:hover {
-    background: rgba(239, 68, 68, 0.18);
+    background: rgba(239, 68, 68, 0.2);
     border-color: var(--rose-danger);
     color: #ffffff;
-    box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+    box-shadow: 0 0 18px rgba(239, 68, 68, 0.35);
+    transform: translateY(-1.5px);
 }
 
 .error-msg {
@@ -286,6 +443,16 @@ input:focus, select:focus, textarea:focus {
     flex-wrap: wrap;
     gap: 16px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    position: relative;
+    overflow: hidden;
+}
+
+.dash-header::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 1.5px;
+    background: linear-gradient(90deg, transparent, var(--cyan-accent), var(--discord-blurple), transparent);
+    opacity: 0.8;
 }
 
 .header-brand {
@@ -295,16 +462,19 @@ input:focus, select:focus, textarea:focus {
 }
 
 .header-icon-badge {
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
     background: linear-gradient(135deg, var(--discord-blurple), var(--mc-green-dark));
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 18px rgba(88, 101, 242, 0.4);
+    box-shadow: 0 0 20px rgba(88, 101, 242, 0.5);
     color: #ffffff;
     font-size: 20px;
+    position: relative;
+    overflow: hidden;
+    animation: badgeGlow 4s ease-in-out infinite;
 }
 
 .header-brand h1 {
@@ -335,6 +505,12 @@ input:focus, select:focus, textarea:focus {
     display: inline-flex;
     align-items: center;
     gap: 7px;
+    transition: all 0.2s;
+}
+
+.status-pill:hover {
+    border-color: var(--mc-green);
+    box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
 }
 
 .status-pill.discord {
@@ -343,13 +519,29 @@ input:focus, select:focus, textarea:focus {
     border-color: var(--discord-border);
 }
 
+.status-pill.discord:hover {
+    border-color: #818cf8;
+    box-shadow: 0 0 12px rgba(88, 101, 242, 0.35);
+}
+
 .pulse-dot {
+    position: relative;
     display: inline-block;
     width: 7px; height: 7px;
     background: var(--mc-green);
     border-radius: 50%;
     box-shadow: 0 0 8px #22c55e;
     animation: pulseGlow 1.6s infinite;
+}
+
+.pulse-dot::before {
+    content: '';
+    position: absolute;
+    top: -2px; left: -2px; right: -2px; bottom: -2px;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    animation: pulseRadar 2s infinite;
+    pointer-events: none;
 }
 
 .status-pill.discord .pulse-dot {
@@ -362,6 +554,172 @@ input:focus, select:focus, textarea:focus {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+}
+
+/* ==========================================
+   FUTURISTIC CYBER NAVIGATION BAR & TABS
+   ========================================== */
+.main-nav-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 22px;
+    padding: 7px 8px;
+    background: rgba(17, 20, 27, 0.75);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    backdrop-filter: blur(18px);
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    position: relative;
+    z-index: 10;
+}
+
+.main-nav-bar::-webkit-scrollbar {
+    height: 4px;
+}
+.main-nav-bar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.nav-tab-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    color: var(--text-muted);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+}
+
+.nav-tab-btn .nav-tab-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+    transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.nav-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.nav-tab-btn:hover .nav-tab-icon-wrap {
+    transform: scale(1.18) rotate(4deg);
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.nav-tab-btn:active {
+    transform: translateY(0) scale(0.97);
+}
+
+/* Active Nav Tab Styling with Neon Glow & Indicator */
+.nav-tab-btn.active {
+    color: #ffffff;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.16) 0%, rgba(88, 101, 242, 0.25) 100%);
+    border-color: var(--cyan-accent);
+    box-shadow: 0 0 22px rgba(0, 242, 254, 0.3), inset 0 0 14px rgba(0, 242, 254, 0.12);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.45);
+}
+
+.nav-tab-btn.active .nav-tab-icon-wrap {
+    background: rgba(0, 242, 254, 0.22);
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.5);
+    transform: scale(1.1);
+}
+
+/* Glowing bottom line indicator on active tab */
+.nav-tab-indicator {
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    right: 25%;
+    height: 2.5px;
+    background: linear-gradient(90deg, transparent, var(--cyan-accent), #ffffff, var(--cyan-accent), transparent);
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-tab-btn.active .nav-tab-indicator {
+    opacity: 1;
+    left: 10%;
+    right: 10%;
+    box-shadow: 0 0 10px var(--cyan-accent), 0 0 4px #ffffff;
+}
+
+/* Shimmer Sheen effect across tab buttons */
+.nav-tab-shine {
+    position: absolute;
+    top: 0;
+    left: -140%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transform: skewX(-25deg);
+    transition: none;
+    pointer-events: none;
+}
+
+.nav-tab-btn:hover .nav-tab-shine {
+    left: 200%;
+    transition: left 0.75s ease-in-out;
+}
+
+/* AI Specialized Tab Styling */
+.nav-tab-btn.nav-tab-ai {
+    background: rgba(168, 85, 247, 0.08);
+    border-color: rgba(168, 85, 247, 0.28);
+}
+
+.nav-tab-btn.nav-tab-ai.active {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.26) 0%, rgba(236, 72, 153, 0.22) 100%);
+    border-color: #c084fc;
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.4), inset 0 0 14px rgba(168, 85, 247, 0.15);
+}
+
+.nav-tab-ai-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    color: #ffffff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
+}
+
+/* Tab Panes Transition */
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+    animation: tabEntrance 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Metrics Grid - Immersive Style */
@@ -859,3 +1217,313 @@ pre {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
+
+/* ==========================================
+   Advanced Feature Components Styling
+   ========================================== */
+
+/* 1. Command Autocomplete Popup (I.6) */
+.autocomplete-container {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.7);
+    max-height: 180px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+}
+
+.autocomplete-item {
+    padding: 8px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #94a3b8;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.autocomplete-item:hover, .autocomplete-item.active {
+    background: rgba(0, 242, 254, 0.15);
+    color: #00f2fe;
+}
+
+.autocomplete-item .cmd-desc {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+/* 2. 3D Skin Viewer Stage (I.3) */
+.skin-viewer-wrapper {
+    background: radial-gradient(circle at center, #1a2234 0%, #0c1018 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.skin-canvas-container {
+    width: 240px;
+    height: 280px;
+    position: relative;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.skin-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* 3. Live Analytics Chart Canvas (IV.1) */
+.chart-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.chart-canvas {
+    width: 100%;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 4. Embed Discord Builder Live Preview (II.2) */
+.discord-preview-card {
+    background: #2b2d31;
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    color: #dbdee1;
+    margin-top: 12px;
+}
+
+.discord-embed-box {
+    background: #1e1f22;
+    border-left: 4px solid var(--cyan-accent);
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin-top: 8px;
+}
+
+.discord-embed-author {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 6px;
+}
+
+.discord-embed-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #00a8fc;
+    margin-bottom: 6px;
+}
+
+.discord-embed-desc {
+    font-size: 12.5px;
+    background: #111214;
+    padding: 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #3ba55c;
+    margin-bottom: 8px;
+}
+
+.discord-embed-footer {
+    font-size: 10.5px;
+    color: #949ba4;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 5. Multi-Tenant Key Manager Cards (I.2) */
+.key-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.key-card {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s;
+}
+
+.key-card:hover {
+    border-color: rgba(0, 242, 254, 0.4);
+    transform: translateY(-2px);
+}
+
+/* 6. Audit Logs Table (III.3) */
+.audit-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.audit-table th {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+.audit-table td {
+    padding: 10px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+/* 7. Modal & Overlays */
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+    width: 100%;
+    max-width: 620px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+/* 8. Theme Switcher Pill */
+.theme-selector {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 4px;
+}
+
+.theme-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+
+.theme-btn.active {
+    background: var(--cyan-accent);
+    color: #000000;
+}
+
+/* 9. Click Ripple & Interactive Micro-Animations */
+.btn-click-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: rippleWave 0.6s ease-out;
+    pointer-events: none;
+}
+
+@keyframes rippleWave {
+    to {
+        transform: scale(2.5);
+        opacity: 0;
+    }
+}
+
+/* Card Glow Enhancements & Hover Lifts */
+.section-card {
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.section-card:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.45);
+}
+
+.metric-card {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 242, 254, 0.35);
+    box-shadow: 0 8px 25px rgba(0, 242, 254, 0.15);
+}
+
+.structure-item {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.structure-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    transform: translateX(3px);
+}
+
+

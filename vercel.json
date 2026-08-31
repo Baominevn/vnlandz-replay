@@ -9,7 +9,7 @@
   "routes": [
     { "src": "/style.css", "dest": "/style.css" },
     { "src": "/script.js", "dest": "/script.js" },
-    { "src": "/(login|logout|admin/data|poll|send|events|push)", "dest": "/server.js" },
+    { "src": "/(login|logout|admin/data|admin/settings|admin/test-discord|poll|send|events|push)", "dest": "/server.js" },
     { "src": "/api/(.*)", "dest": "/server.js" },
     { "src": "/", "dest": "/index.html" },
     { "src": "/(.*)", "dest": "/server.js" }

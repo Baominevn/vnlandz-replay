@@ -3,19 +3,364 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>VnlandZ Relay Nexus Pro</title>
-    <meta name="description" content="Cyberpunk-themed high-performance Relay Command Queue and Real-time Event Monitor for game clients and server bridges." />
-    <meta property="og:title" content="VnlandZ Relay Nexus Pro" />
-    <meta property="og:description" content="Cyberpunk-themed high-performance Relay Command Queue and Real-time Event Monitor for game clients and server bridges." />
+    <title>VnlandZ Minecraft Relay & Discord Bridge</title>
+    <meta name="description" content="High-performance Minecraft Client Relay, Command Queue, and Real-time Discord Webhook Bridge with Immersive Console UI." />
+    <meta property="og:title" content="VnlandZ Minecraft Relay & Discord Bridge" />
+    <meta property="og:description" content="High-performance Minecraft Client Relay, Command Queue, and Real-time Discord Webhook Bridge with Immersive Console UI." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    
+    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="/style.css">
   </head>
-  <body class="bg-[#050814] text-slate-100 min-h-screen antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body>
+    <!-- Cyber Background Animation -->
+    <div class="cyber-grid-bg"></div>
+
+    <!-- 1. Authentication Box -->
+    <div id="loginBox" class="auth-container">
+      <div class="auth-card">
+        <div class="tech-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+          <span>REPLAY BRIDGE CONSOLE</span>
+        </div>
+        <h2 class="neon-cyan" style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">XÁC THỰC QUẢN TRỊ</h2>
+        <p class="auth-desc">Đăng nhập để điều khiển hàng đợi Replay Minecraft và kết nối Discord Webhook.</p>
+
+        <form id="loginForm" autocomplete="off">
+          <!-- Anti-Bot Honeypot Trap -->
+          <input type="text" name="_hp_security_check" id="_hp_security_check" style="display:none !important; position:absolute; left:-9999px;" tabindex="-1" autocomplete="off" />
+
+          <div class="input-group">
+            <label class="input-label" for="username">TÀI KHOẢN QUẢN TRỊ</label>
+            <input type="text" id="username" placeholder="Nhập tài khoản quản trị..." required autocomplete="off" />
+          </div>
+
+          <div class="input-group">
+            <label class="input-label" for="admin_password">MẬT KHẨU BẢO MẬT</label>
+            <input type="password" id="admin_password" placeholder="Nhập mật khẩu..." required autocomplete="new-password" />
+          </div>
+
+          <button type="submit" class="btn btn-neon" style="width: 100%; margin-top: 10px;">
+            <span>XÁC THỰC TRUY CẬP</span>
+            <span>➔</span>
+          </button>
+        </form>
+
+        <div id="errorMsg" class="error-msg"></div>
+        
+        <div style="margin-top: 22px; font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--neon-green);">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          <span>Anti-Brute Force • Rate-Limited & Encrypted</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Dashboard Container -->
+    <div id="dashboardBox" class="dashboard-container" style="display: none;">
+      
+      <!-- Dash Header (Immersive Style) -->
+      <header class="dash-header">
+        <div class="header-brand">
+          <div class="header-icon-badge">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          </div>
+          <div>
+            <h1>Replay Bridge Console</h1>
+            <p id="headerSubtext" class="header-subtext">Node.js Engine • Real-time Discord Sync</p>
+          </div>
+        </div>
+
+        <div class="user-actions">
+          <div id="clientStatusBadge" class="status-pill">
+            <span id="clientStatusDot" class="pulse-dot"></span>
+            <span id="clientStatusText">0 Clients Active</span>
+          </div>
+          <div id="discordHeaderBadge" class="status-pill discord">
+            <span class="pulse-dot"></span>
+            <span>Discord Webhook Active</span>
+          </div>
+          <span id="ipDisplay" class="font-mono" style="color: var(--text-muted); font-size: 12px; margin-left: 4px;">IP: --</span>
+          <button id="reloadBtn" class="btn btn-sm btn-outline" title="Làm mới dữ liệu">
+            <span>🔄 Làm Mới</span>
+          </button>
+          <button id="logoutBtn" class="btn btn-sm btn-danger-outline" title="Đăng xuất">
+            <span>🚪 Đăng Xuất</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Real Live Telemetry & Bridge Performance Parameters -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px;">
+          <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Server Runtime Metrics</div>
+          <div class="structure-item active" style="margin-bottom: 8px;">
+            <span style="color: #60a5fa;">Heap Memory: <strong id="statHeapMem" style="color:#ffffff;">-- MB</strong></span>
+            <span id="statNodeVerTag" class="status-micro-tag" style="background: rgba(88, 101, 242, 0.2); color: #818cf8;">NODE --</span>
+          </div>
+          <div class="structure-item active" style="margin-bottom: 8px;">
+            <span style="color: #4ade80;">Server Uptime: <strong id="statUptime" style="color:#ffffff;">--</strong></span>
+            <span class="status-micro-tag" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">ONLINE</span>
+          </div>
+          <div class="structure-item active">
+            <span style="color: #fb923c;">Total HTTP Requests: <strong id="statTotalReqs" style="color:#ffffff;">0</strong></span>
+            <span class="status-micro-tag" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24;">PROCESSED</span>
+          </div>
+        </div>
+
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px;">Live Bridge Telemetry (Real-time)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
+              <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #22c55e;">
+                <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Sync Rate</div>
+                <div id="statSyncRate" style="color: #22c55e; font-weight: 700; font-size: 14px;">100%</div>
+              </div>
+              <div style="background: rgba(0,0,0,0.4); padding: 8px 10px; border-radius: 6px; border-left: 2px solid #5865F2;">
+                <div style="font-size: 9.5px; color: var(--text-dim); text-transform: uppercase;">Discord Latency (RTT)</div>
+                <div id="statDiscordLatency" style="color: #818cf8; font-weight: 700; font-size: 14px;">--</div>
+              </div>
+            </div>
+          </div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 10px; font-family: 'JetBrains Mono', monospace;">
+            Replay Sync Protocol: <span id="statPollStatus" style="color: #4ade80;">Active HTTP Polling & Event Relay</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Metrics Grid (Immersive Tiles) -->
+      <section class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Clients Kết Nối</span>
+            <span style="font-size: 16px;">🔑</span>
+          </div>
+          <div id="statClients" class="metric-value">0</div>
+          <div class="metric-sub">Client Keys đang hoạt động</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Hàng Đợi Lệnh (Queue)</span>
+            <span style="font-size: 16px;">📦</span>
+          </div>
+          <div id="statQueues" class="metric-value" style="color: #fbbf24;">0</div>
+          <div class="metric-sub">Chờ Minecraft Client poll</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Tổng Sự Kiện Nhận</span>
+            <span style="font-size: 16px;">⚡</span>
+          </div>
+          <div id="statEvents" class="metric-value" style="color: #4ade80;">0</div>
+          <div class="metric-sub">Chat, Join, Leave, Replay Logs</div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-title">Discord Chuyển Tiếp</span>
+            <span style="font-size: 16px;">💬</span>
+          </div>
+          <div id="statDiscordForwards" class="metric-value" style="color: #818cf8;">0</div>
+          <div class="metric-sub">Sự kiện đã bắn sang Webhook</div>
+        </div>
+      </section>
+
+      <!-- Discord Bridge Configuration Card -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span style="color: #5865F2; font-size: 18px;">💬</span>
+            <span>Discord Webhook Bridge Configuration</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+            REAL-TIME SYNC • DISCORD API v10
+          </div>
+        </div>
+
+        <div class="discord-grid">
+          <div>
+            <label class="input-label" for="discordWebhookInput">DISCORD WEBHOOK ENDPOINT</label>
+            <div style="display: flex; gap: 8px;">
+              <input type="password" id="discordWebhookInput" placeholder="https://discord.com/api/webhooks/123456/abcdef..." />
+              <button id="toggleMaskWebhookBtn" class="btn btn-sm btn-outline" style="min-width: 90px;">Hiện Link</button>
+            </div>
+            
+            <div class="discord-toggle-grid">
+              <label class="toggle-card">
+                <span>Chuyển tiếp tất cả</span>
+                <input type="checkbox" id="toggleForwardEvents" checked />
+              </label>
+              <label class="toggle-card">
+                <span>Chat trong game</span>
+                <input type="checkbox" id="toggleForwardChat" checked />
+              </label>
+              <label class="toggle-card">
+                <span>Vào / Rời Server</span>
+                <input type="checkbox" id="toggleForwardJoinLeave" checked />
+              </label>
+              <label class="toggle-card">
+                <span>Chết / Sát thương</span>
+                <input type="checkbox" id="toggleForwardDeaths" checked />
+              </label>
+              <label class="toggle-card">
+                <span>Lệnh / Replay</span>
+                <input type="checkbox" id="toggleForwardCommands" checked />
+              </label>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="font-size: 12px; color: var(--text-muted); line-height: 1.6; background: rgba(0, 0, 0, 0.5); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color);">
+              💡 <strong>Hướng dẫn:</strong> Vào Server Discord của bạn ➔ Kênh Chat ➔ Chỉnh sửa kênh ➔ <em>Tích hợp (Integrations)</em> ➔ <em>Tạo Webhook</em> ➔ Sao chép URL và dán vào đây.
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+              <button id="saveDiscordBtn" class="btn btn-discord">
+                <span>💾 Lưu Cài Đặt Discord</span>
+              </button>
+              <button id="testDiscordBtn" class="btn btn-outline">
+                <span>⚡ Gửi Tin Nhắn Test</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="discordSaveStatus" style="font-size: 12.5px; margin-top: 12px; font-weight: 500;"></div>
+      </section>
+
+      <!-- Minecraft Command Dispatcher Card -->
+      <section class="section-card">
+        <div class="section-header">
+          <div class="section-title">
+            <span style="color: #fbbf24; font-size: 18px;">🎮</span>
+            <span>Minecraft Command & Replay Controller</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
+            COMMAND QUEUE DISPATCHER
+          </div>
+        </div>
+
+        <form id="commandForm">
+          <div class="command-form-grid">
+            <div>
+              <label class="input-label" for="targetKeyInput">CLIENT KEY TARGET</label>
+              <input type="text" id="targetKeyInput" placeholder="VD: my-client-key" required />
+            </div>
+
+            <div>
+              <label class="input-label" for="commandTextInput">CÂU LỆNH / TIN NHẮN CHAT</label>
+              <input type="text" id="commandTextInput" placeholder="VD: /say Xin chao Discord! hoac .replay start" required />
+            </div>
+
+            <div style="display: flex; align-items: flex-end;">
+              <button type="submit" class="btn btn-neon" style="height: 42px;">
+                <span>🚀 Gửi Lệnh Vào Queue</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Preset Commands & Selectors -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+            <div class="quick-commands">
+              <span style="font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; font-weight: 700; align-self: center;">Mẫu Nhanh:</span>
+              <button type="button" class="quick-cmd-btn" data-cmd="/say [Discord] Xin chào từ Relay!">[Discord] Say</button>
+              <button type="button" class="quick-cmd-btn" data-cmd="/gamemode creative">/gm creative</button>
+              <button type="button" class="quick-cmd-btn" data-cmd="/time set day">/time day</button>
+              <button type="button" class="quick-cmd-btn" data-cmd="/weather clear">/weather clear</button>
+              <button type="button" class="quick-cmd-btn" data-cmd=".replay start">.replay start</button>
+              <button type="button" class="quick-cmd-btn" data-cmd=".replay stop">.replay stop</button>
+            </div>
+
+            <div style="max-width: 250px;">
+              <select id="clientSelect">
+                <option value="">-- Chọn Client Key sẵn có --</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="cmdFeedback" style="font-size: 12.5px; margin-top: 10px; font-weight: 500;"></div>
+        </form>
+      </section>
+
+      <!-- Control Bar -->
+      <div class="control-bar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="🔍 Tìm kiếm theo Client Key, Tên Player hoặc Tin nhắn..." />
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <label class="auto-refresh-label">
+            <input type="checkbox" id="autoRefreshToggle" checked />
+            <span>Tự động làm mới (3s)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Clients List Container -->
+      <div id="contentData" class="clients-grid">
+        <div class="loading-state">Đang tải danh sách Client và Sự kiện...</div>
+      </div>
+
+      <!-- Minecraft Mod / Replay Integration Guide -->
+      <section class="section-card" style="margin-top: 24px;">
+        <div class="section-header">
+          <div class="section-title">
+            <span style="color: #38bdf8; font-size: 18px;">🔌</span>
+            <span>Integration Protocol Documentation</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">REST API SPEC</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <h4 style="font-size: 12.5px; color: #38bdf8; margin-bottom: 6px; font-weight: 600;">1. Client Poll Lệnh Từ Server:</h4>
+            <p style="font-size: 12px; color: var(--text-muted);">Minecraft Client gửi GET định kỳ 1s để nhận lệnh thực thi:</p>
+            <div class="code-box">
+              GET /poll?clientKey=TEN_KEY<br>
+              // Response: { "ok": true, "command": "/say Hello" }
+            </div>
+          </div>
+
+          <div>
+            <h4 style="font-size: 12.5px; color: #4ade80; margin-bottom: 6px; font-weight: 600;">2. Client Bắn Sự Kiện Sang Discord:</h4>
+            <p style="font-size: 12px; color: var(--text-muted);">Gửi POST khi có Chat, Replay hoặc sự kiện:</p>
+            <div class="code-box">
+              POST /events?clientKey=TEN_KEY<br>
+              Content-Type: application/json<br>
+              { "type": "CHAT", "player": "Steve", "server": "mc.hypixel.net", "message": "Hello Discord!" }
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer (Immersive Console) -->
+      <footer class="console-footer">
+        <div style="display: flex; align-items: center; gap: 18px;">
+          <div><span style="color: var(--text-dim);">PROJECT:</span> <span style="color: #ffffff; font-family: 'JetBrains Mono', monospace;">mc-replay-discord-bridge</span></div>
+          <div><span style="color: var(--text-dim);">ENV:</span> <span style="color: #fb923c; font-family: 'JetBrains Mono', monospace;">production</span></div>
+        </div>
+        <div>
+          <span>VnlandZ Replay Bridge • Vercel Deployment Preserved</span>
+        </div>
+      </footer>
+
+    </div>
+
+    <!-- Main Frontend Script -->
+    <script src="/script.js"></script>
   </body>
 </html>
-

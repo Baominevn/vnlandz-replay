@@ -1,0 +1,6 @@
+{
+  "name": "VnlandZ Minecraft Relay & Discord Bridge",
+  "description": "High-performance Minecraft Client Relay, Command Queue, and Real-time Discord Webhook Bridge with Immersive Console UI.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

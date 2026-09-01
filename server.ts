@@ -943,9 +943,16 @@ function forwardToDiscord(
 }
 
 function extractClientKey(req: Request): string {
-  const queryKey = req.query.clientKey || req.query.key;
+  const queryKey = req.query?.clientKey || req.query?.key;
   const headerKey = req.headers["x-vnlandz-client-key"];
-  return cleanKey(queryKey || headerKey);
+  const bodyKey = req.body && typeof req.body === "object" ? (req.body.clientKey || req.body.key) : "";
+  const key = cleanKey(queryKey || headerKey || bodyKey);
+  if (key) return key;
+  // If only 1 client key exists, use it as fallback
+  if (clientKeys.size > 0) {
+    return Array.from(clientKeys.keys())[0];
+  }
+  return "vnlandz_main";
 }
 
 // ==========================================
@@ -2229,13 +2236,17 @@ app.post("/admin/restore", checkAuth, requirePermission("BACKUP_RESTORE"), rateL
 });
 
 app.post("/admin/test-discord", checkAuth, requirePermission("EDIT_SETTINGS"), rateLimit(10, 60000), async (req: Request, res: Response) => {
-  const body = req.body;
-  const targetWebhook = cleanText(
-    body.webhookUrl || appConfig.discordWebhookUrl || process.env.DISCORD_WEBHOOK_URL || ""
-  );
+  const body = req.body || {};
+  let targetWebhook = cleanText(body.webhookUrl || "");
+  if (!targetWebhook || targetWebhook.includes("••••")) {
+    targetWebhook = appConfig.discordWebhookUrl || process.env.DISCORD_WEBHOOK_URL || "";
+  }
 
   if (!targetWebhook || !isValidDiscordWebhook(targetWebhook)) {
-    res.status(400).json({ ok: false, error: "Link Discord Webhook không hợp lệ!" });
+    res.status(400).json({
+      ok: false,
+      error: "Vui lòng nhập Link Discord Webhook hợp lệ (bắt đầu bằng https://discord.com/api/webhooks/...)!",
+    });
     return;
   }
 
@@ -2256,15 +2267,15 @@ app.post("/admin/test-discord", checkAuth, requirePermission("EDIT_SETTINGS"), r
     discordStats.lastSent = new Date().toISOString();
     res.json({
       ok: true,
-      message: `Đã gửi tin nhắn test đến Discord thành công! Độ trễ thực tế: ${result.latencyMs}ms`,
+      message: `Đã gửi tin nhắn test đến Discord thành công! Độ trễ: ${result.latencyMs}ms`,
       latencyMs: result.latencyMs,
     });
   } else {
     discordStats.failed++;
     discordStats.lastError = result.error || "Unknown error";
-    res.status(500).json({
+    res.status(400).json({
       ok: false,
-      error: `Gửi Discord thất bại (${result.latencyMs}ms): ${result.error || "Unknown error"}`,
+      error: `Gửi Discord thất bại (${result.latencyMs}ms): ${result.error || "Không kết nối được Discord"}`,
       latencyMs: result.latencyMs,
     });
   }

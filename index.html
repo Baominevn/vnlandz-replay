@@ -93,6 +93,12 @@
         </div>
 
         <div class="user-actions">
+          <!-- Quick Maintenance Status Badge / Button -->
+          <button type="button" id="quickMaintenanceBtn" class="status-pill maintenance-pill" title="Chế Độ Bảo Trì 1-Chạm">
+            <span id="quickMaintDot" class="pulse-dot" style="background-color: #22c55e;"></span>
+            <span id="quickMaintText">HỆ THỐNG HOẠT ĐỘNG</span>
+          </button>
+
           <!-- Theme Switcher (IV.5) -->
           <div class="theme-selector" title="Chuyển đổi giao diện">
             <button type="button" class="theme-btn active" data-theme="cyberpunk">Cyber</button>
@@ -112,15 +118,44 @@
             <span>Discord Webhook</span>
           </div>
 
-          <span id="ipDisplay" class="font-mono" style="color: var(--text-muted); font-size: 12px; margin-left: 4px;">IP: --</span>
+          <!-- User Avatar Profile Button (Corner Avatar) -->
+          <button type="button" id="adminAvatarCornerBtn" class="admin-avatar-corner-btn" title="Xem Hồ Sơ Quản Trị & Bảng Phân Quyền">
+            <img id="cornerAvatarImg" src="https://mc-heads.net/avatar/MHF_Steve/64" alt="Staff Avatar" class="corner-avatar-head" />
+            <div class="corner-avatar-info">
+              <span id="cornerDisplayName" class="corner-avatar-name">Super Admin</span>
+              <span id="cornerRoleBadge" class="corner-role-pill role-admin">ADMIN</span>
+            </div>
+            <span class="corner-avatar-arrow">➔</span>
+          </button>
+
           <button id="reloadBtn" class="btn btn-sm btn-outline" title="Làm mới dữ liệu">
-            <span>🔄 Làm Mới</span>
+            <span>🔄</span>
           </button>
           <button id="logoutBtn" class="btn btn-sm btn-danger-outline" title="Đăng xuất">
-            <span>🚪 Đăng Xuất</span>
+            <span>🚪</span>
           </button>
         </div>
       </header>
+
+      <!-- Global Maintenance Alert Banner (Interactive Live Countdown) -->
+      <div id="maintenanceGlobalBanner" class="maintenance-global-banner" style="display: none;">
+        <div class="maint-banner-content">
+          <div class="maint-banner-left">
+            <span class="maint-radar-icon">⚠️</span>
+            <div>
+              <div class="maint-banner-title">
+                <span>CHẾ ĐỘ BẢO TRÌ ĐANG KÍCH HOẠT (LOCKDOWN MODE)</span>
+                <span id="maintBannerCountdown" class="maint-countdown-chip">00:00:00</span>
+              </div>
+              <p id="maintBannerMessage" class="maint-banner-desc">Hệ thống đang được nâng cấp bảo trì định kỳ.</p>
+            </div>
+          </div>
+          <div class="maint-banner-actions">
+            <button type="button" id="maintBannerManageBtn" class="btn btn-sm btn-neon">⚙️ Quản Lý Bảo Trì</button>
+            <button type="button" id="maintBannerQuickOffBtn" class="btn btn-sm btn-danger" title="Tắt bảo trì ngay lập tức">✕ Tắt Ngay</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Main Navigation Tabs -->
       <nav class="main-nav-bar">
@@ -148,6 +183,12 @@
           <span class="nav-tab-shine"></span>
           <span class="nav-tab-indicator"></span>
         </button>
+        <button type="button" class="nav-tab-btn" data-tab="tab-leaderboard" id="tabNavLeaderboard">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">🏆</span></span>
+          <span class="nav-tab-label">BXH Hoạt Động</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
         <button type="button" class="nav-tab-btn" data-tab="tab-analytics" id="tabNavAnalytics">
           <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">📈</span></span>
           <span class="nav-tab-label">Biểu Đồ Analytics</span>
@@ -157,6 +198,12 @@
         <button type="button" class="nav-tab-btn" data-tab="tab-audit" id="tabNavAudit">
           <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">🛡️</span></span>
           <span class="nav-tab-label">Audit Logs</span>
+          <span class="nav-tab-shine"></span>
+          <span class="nav-tab-indicator"></span>
+        </button>
+        <button type="button" class="nav-tab-btn nav-tab-staff" data-tab="tab-staff-admin" id="tabNavStaffAdmin">
+          <span class="nav-tab-icon-wrap"><span class="nav-tab-icon">👑</span></span>
+          <span class="nav-tab-label">Quản Trị & Phân Quyền</span>
           <span class="nav-tab-shine"></span>
           <span class="nav-tab-indicator"></span>
         </button>
@@ -387,10 +434,10 @@
           <div class="section-header">
             <div class="section-title">
               <span style="color: #10b981; font-size: 18px;">🧍</span>
-              <span>Interactive 3D Minecraft Skin Viewer</span>
+              <span>Interactive 3D Minecraft Skin Viewer & Poses</span>
             </div>
             <div style="font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">
-              REAL-TIME WEBGL RENDERING
+              REAL-TIME WEBGL RENDERING • MULTI-ACTION
             </div>
           </div>
 
@@ -400,12 +447,30 @@
                 <canvas id="skinCanvas" width="240" height="280"></canvas>
               </div>
 
-              <div class="skin-controls">
-                <button type="button" id="skinAnimWalk" class="btn btn-sm btn-outline">🚶 Đi bộ</button>
-                <button type="button" id="skinAnimRun" class="btn btn-sm btn-outline">🏃 Chạy</button>
-                <button type="button" id="skinAnimFly" class="btn btn-sm btn-outline">🚀 Bay</button>
-                <button type="button" id="skinAnimRotate" class="btn btn-sm btn-neon">🔄 Xoay Tự Động</button>
-                <button type="button" id="skinAnimPause" class="btn btn-sm btn-outline">⏸️ Dừng</button>
+              <!-- Action Category: Animations -->
+              <div style="width: 100%; margin-top: 12px;">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Hành Động & Hoạt Họa (Animations)</div>
+                <div class="skin-controls">
+                  <button type="button" id="skinAnimWalk" class="btn btn-sm btn-outline">🚶 Đi bộ</button>
+                  <button type="button" id="skinAnimRun" class="btn btn-sm btn-outline">🏃 Chạy</button>
+                  <button type="button" id="skinAnimFly" class="btn btn-sm btn-outline">🚀 Bay</button>
+                  <button type="button" id="skinAnimWave" class="btn btn-sm btn-outline" style="color: #fbbf24;">👋 Vẫy Chào</button>
+                  <button type="button" id="skinAnimCute" class="btn btn-sm btn-outline" style="color: #f472b6;">💖 Cute / Nhún Nhảy</button>
+                  <button type="button" id="skinAnimZombie" class="btn btn-sm btn-outline" style="color: #4ade80;">🧟 Zombie</button>
+                </div>
+              </div>
+
+              <!-- Action Category: Static Poses -->
+              <div style="width: 100%; margin-top: 10px;">
+                <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center;">Tư Thế Cố Định (Poses)</div>
+                <div class="skin-controls">
+                  <button type="button" id="skinPoseSit" class="btn btn-sm btn-outline" style="color: #38bdf8;">🪑 Ngồi Nghỉ</button>
+                  <button type="button" id="skinPoseSleep" class="btn btn-sm btn-outline" style="color: #a78bfa;">💤 Nằm Ngủ</button>
+                  <button type="button" id="skinPoseBow" class="btn btn-sm btn-outline" style="color: #fb923c;">🙇 Cúi Chào</button>
+                  <button type="button" id="skinPoseStand" class="btn btn-sm btn-outline">🧍 Đứng Chuẩn</button>
+                  <button type="button" id="skinAnimRotate" class="btn btn-sm btn-neon">🔄 Xoay Tự Động</button>
+                  <button type="button" id="skinAnimPause" class="btn btn-sm btn-outline">⏸️ Tạm Dừng</button>
+                </div>
               </div>
             </div>
 
@@ -413,14 +478,17 @@
               <div class="input-group">
                 <label class="input-label" for="skinPlayerInput">TÊN NGƯỜI CHƠI (MINECRAFT NICKNAME)</label>
                 <div style="display: flex; gap: 8px;">
-                  <input type="text" id="skinPlayerInput" placeholder="VD: Notch, Steve, Dream, MHF_Steve..." value="Steve" />
+                  <input type="text" id="skinPlayerInput" placeholder="VD: Notch, Steve, Dream, baomine_YT, Alex..." value="Steve" />
                   <button type="button" id="loadSkinBtn" class="btn btn-neon">Tải Skin 3D</button>
                 </div>
               </div>
 
               <div style="margin-top: 16px;">
-                <label class="input-label">CHỌN NHANH TỪ LOGS GẦN ĐÂY:</label>
-                <div id="quickPlayersList" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label class="input-label" style="margin-bottom: 0;">CHỌN NHANH TỪ LOGS GẦN ĐÂY:</label>
+                  <span id="quickPlayersCountTag" style="font-size: 10.5px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace;">Tự động cập nhật theo logs</span>
+                </div>
+                <div id="quickPlayersList" style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; max-height: 120px; overflow-y: auto; padding: 2px;">
                   <button type="button" class="quick-cmd-btn" data-player="Steve">Steve</button>
                   <button type="button" class="quick-cmd-btn" data-player="Alex">Alex</button>
                   <button type="button" class="quick-cmd-btn" data-player="Notch">Notch</button>
@@ -428,8 +496,9 @@
                 </div>
               </div>
 
-              <div style="margin-top: 20px; background: rgba(0,0,0,0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
-                💡 Bạn có thể dùng chuột trái để xoay góc nhìn 360 độ, chuột phải để di chuyển và con lăn để zoom gần/xa mô hình nhân vật.
+              <div style="margin-top: 18px; background: rgba(0,0,0,0.4); padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+                <div>💡 <strong>Tương tác chuột 3D:</strong> Giữ chuột trái để xoay 360°, chuột phải để di chuyển vị trí, và con lăn chuột để Zoom gần/xa.</div>
+                <div style="margin-top: 6px;">✨ Chọn nhanh các hành động như <strong>Ngồi (Sit), Nằm ngủ (Sleep), Vẫy tay (Wave), Cute/Nhún nhảy, Cúi chào (Bow)</strong> hoặc click bất kỳ người chơi nào từ Logs gần đây để xem skin 3D ngay lập tức.</div>
               </div>
             </div>
           </div>
@@ -588,7 +657,131 @@
       </div>
 
       <!-- ==========================================
-           TAB 5: REAL-TIME ANALYTICS (IV.1)
+           TAB 5: LEADERBOARDS & PLAYER STATS (TOP ACTIVE PLAYERS)
+           ========================================== -->
+      <div id="tab-leaderboard" class="tab-pane" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 18px;">
+          <div>
+            <h2 style="font-size: 18px; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+              <span style="color: #fbbf24;">🏆</span> Bảng Xếp Hạng Hoạt Động Người Chơi (Top Player Leaderboards)
+            </h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+              Thống kê trực tiếp các chỉ số hoạt động, chiến thần chat, tử vong, thời gian online và 6+ bảng xếp hạng chuyên sâu.
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" id="refreshLeaderboardBtn" class="btn btn-sm btn-neon">
+              <span>🔄 Cập Nhật BXH</span>
+            </button>
+            <button type="button" id="resetLeaderboardBtn" class="btn btn-sm btn-danger-outline" title="Xóa dữ liệu thống kê cũ">
+              <span>🗑️ Đặt Lại</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Leaderboard Category Filter Tabs -->
+        <div class="lb-category-bar" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px;">
+          <button type="button" class="lb-cat-btn active" data-lb-cat="all">
+            <span>🌐 Tổng Quan (Bento Grid)</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topChat">
+            <span>💬 Top Chat Nhiều Nhất</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topDeaths">
+            <span>☠️ Top Chết Nhiều Nhất</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topPlaytime">
+            <span>⏳ Top Online Lâu Nhất</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topKills">
+            <span>⚔️ Top Chiến Thần PvP</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topJoins">
+            <span>🟢 Top Chăm Chỉ Đăng Nhập</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topCommands">
+            <span>⚡ Top Lệnh (Power Users)</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topDamage">
+            <span>🛡️ Top Sát Thương / Giao Tranh</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topActivity">
+            <span>🔥 Top Điểm Tương Tác</span>
+          </button>
+          <button type="button" class="lb-cat-btn" data-lb-cat="topClean">
+            <span>⭐ Top Gương Mẫu (0 Cảnh Cáo)</span>
+          </button>
+        </div>
+
+        <!-- Leaderboard Stats Counter Bar -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px;">
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Tổng Người Chơi Ghi Nhận</div>
+            <div id="lbTotalTrackedPlayers" style="font-size: 22px; font-weight: 700; color: #00f2fe; margin-top: 4px; font-family: 'JetBrains Mono', monospace;">0</div>
+          </div>
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px;">
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Top Chat Vô Địch</div>
+            <div id="lbTopChatKing" style="font-size: 14px; font-weight: 700; color: #4ade80; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+              <span>--</span>
+            </div>
+          </div>
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px;">
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Kỷ Lục Tử Vong</div>
+            <div id="lbTopDeathKing" style="font-size: 14px; font-weight: 700; color: #f87171; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+              <span>--</span>
+            </div>
+          </div>
+          <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 14px 16px;">
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Chúa Tể Online (Playtime)</div>
+            <div id="lbTopPlaytimeKing" style="font-size: 14px; font-weight: 700; color: #fbbf24; margin-top: 4px; display: flex; align-items: center; gap: 6px;">
+              <span>--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Player Direct Rank Search Box (Tra cứu thứ hạng mọi người chơi) -->
+        <section class="section-card" style="margin-bottom: 20px; border-color: rgba(0, 242, 254, 0.3); background: linear-gradient(180deg, rgba(0, 242, 254, 0.04) 0%, var(--card-bg) 100%);">
+          <div class="section-header" style="margin-bottom: 10px;">
+            <div class="section-title">
+              <span style="color: #00f2fe; font-size: 18px;">🔍</span>
+              <span>Tra Cứu Thứ Hạng Player Trên Mọi Bảng Xếp Hạng (Player Global Rank Finder)</span>
+            </div>
+            <span class="status-micro-tag" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe;">TÌM MỌI THỨ HẠNG</span>
+          </div>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Nhập nickname Minecraft của người chơi (kể cả ngoài top 10 như Top 100, Top 1902 Chat, Top 1832 Chết,...) để tra cứu đầy đủ vị trí thứ hạng cụ thể trên từng bảng xếp hạng.
+          </p>
+
+          <form id="lbPlayerSearchForm" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 260px; position: relative;">
+              <input type="text" id="lbPlayerSearchInput" placeholder="Nhập tên người chơi (VD: baomine_YT, Steve, Notch, Alex...)" style="width: 100%; padding-left: 36px;" />
+              <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;">🔎</span>
+            </div>
+            <button type="submit" class="btn btn-neon" style="min-width: 140px;">
+              <span>⚡ Tra Cứu Rank</span>
+            </button>
+            <button type="button" id="lbPlayerSearchClearBtn" class="btn btn-outline" style="display: none;">
+              <span>✖️ Xoá</span>
+            </button>
+          </form>
+
+          <!-- Result Container for Searched Player Rank -->
+          <div id="lbPlayerSearchResult" style="margin-top: 14px; display: none;">
+            <!-- Rendered by script.js -->
+          </div>
+        </section>
+
+        <!-- Leaderboards Grid Container -->
+        <div id="leaderboardGridContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px;">
+          <!-- Dynamically populated by script.js -->
+          <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+            ⏳ Đang tải dữ liệu bảng xếp hạng từ máy chủ...
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           TAB 6: REAL-TIME ANALYTICS (IV.1)
            ========================================== -->
       <div id="tab-analytics" class="tab-pane" style="display: none;">
         <section class="chart-card">
@@ -644,6 +837,186 @@
               </thead>
               <tbody id="auditTableBody">
                 <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Đang tải dữ liệu kiểm toán...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+
+      <!-- ==========================================
+           TAB: STAFF & RBAC PERMISSION MANAGEMENT
+           ========================================== -->
+      <div id="tab-staff-admin" class="tab-pane" style="display: none;">
+        <!-- Row 1: 1-Click Maintenance Mode Lockdown & Current Profile -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          
+          <!-- Card 1: Maintenance Mode Lockdown -->
+          <section class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span style="color: #ef4444; font-size: 20px;">🚨</span>
+                <span>Chế Độ Bảo Trì 1-Chạm (Lockdown Mode)</span>
+              </div>
+              <span id="maintCardStatusBadge" class="status-micro-tag" style="background: rgba(34, 197, 94, 0.2); color: #4ade80;">HỆ THỐNG MỞ</span>
+            </div>
+            <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
+              Khóa truy cập công khai vào Web & Relay Server khi cần bảo trì, sửa lỗi hoặc nâng cấp hệ thống. Hỗ trợ đếm ngược thời gian và thông báo trực tiếp.
+            </p>
+
+            <!-- Digital Countdown Display -->
+            <div class="cyber-countdown-box">
+              <div class="countdown-label">THỜI GIAN ĐẾM NGƯỢC BẢO TRÌ</div>
+              <div id="maintTabCountdownClock" class="countdown-digital">00:00:00</div>
+              <div id="maintTabStatusSub" class="countdown-subtext">Hệ thống đang hoạt động bình thường</div>
+            </div>
+
+            <!-- Maintenance Controls -->
+            <div style="margin-top: 16px;">
+              <div class="input-group">
+                <label class="input-label" for="maintDurationSelect">THỜI LƯỢNG BẢO TRÌ</label>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 8px;">
+                  <button type="button" class="btn btn-sm btn-outline maint-preset-btn" data-min="15">15 Phút</button>
+                  <button type="button" class="btn btn-sm btn-outline maint-preset-btn active" data-min="30">30 Phút</button>
+                  <button type="button" class="btn btn-sm btn-outline maint-preset-btn" data-min="60">1 Giờ</button>
+                  <button type="button" class="btn btn-sm btn-outline maint-preset-btn" data-min="120">2 Giờ</button>
+                </div>
+                <input type="number" id="maintCustomMinutesInput" placeholder="Hoặc nhập số phút tùy chỉnh (VD: 45)" min="1" max="1440" value="30" />
+              </div>
+
+              <div class="input-group">
+                <label class="input-label" for="maintMessageInput">THÔNG ĐIỆP THÔNG BÁO BẢO TRÌ</label>
+                <input type="text" id="maintMessageInput" value="Hệ thống VnlandZ Minecraft Relay đang trong đợt bảo trì nâng cấp định kỳ." placeholder="Nhập lý do bảo trì hiển thị trên màn hình..." />
+              </div>
+
+              <div style="display: flex; gap: 10px; margin-top: 14px;">
+                <button type="button" id="btnToggleMaintenanceOn" class="btn btn-danger" style="flex: 1;">
+                  <span>🔒 Kích Hoạt Bảo Trì (Lockdown)</span>
+                </button>
+                <button type="button" id="btnToggleMaintenanceOff" class="btn btn-neon" style="flex: 1;">
+                  <span>🔓 Tắt Bảo Trì (Mở Lại)</span>
+                </button>
+              </div>
+              <div id="maintAdminFeedback" style="font-size: 12px; margin-top: 10px;"></div>
+            </div>
+          </section>
+
+          <!-- Card 2: Current Logged In Profile & Privileges -->
+          <section class="section-card">
+            <div class="section-header">
+              <div class="section-title">
+                <span style="color: #00f2fe; font-size: 20px;">👤</span>
+                <span>Hồ Sơ & Quyền Hạn Tài Khoản Đang Đăng Nhập</span>
+              </div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 18px; padding: 16px; background: rgba(0,0,0,0.4); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 16px;">
+              <img id="profileHeadImg" src="https://mc-heads.net/avatar/MHF_Steve/128" alt="Minecraft Head" style="width: 64px; height: 64px; border-radius: 10px; border: 2px solid var(--accent-neon); box-shadow: 0 0 16px rgba(0,242,254,0.3);" />
+              <div style="flex: 1;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+                  <h3 id="profileDisplayName" style="font-size: 17px; font-weight: 700; color: #ffffff;">Tổng Quản Trị</h3>
+                  <span id="profileRoleBadge" class="corner-role-pill role-admin">ADMIN</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">
+                  Tài khoản: <strong id="profileUsername" style="color: #60a5fa;">admin</strong> • IP: <span id="profileIp">--</span>
+                </div>
+                <div id="profileRoleDesc" style="font-size: 11.5px; color: var(--text-dim); margin-top: 4px;">
+                  Toàn quyền quản trị máy chủ, điều khiển cầu nối và cấu hình bảo mật.
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                Danh Sách Quyền Hạn Cụ Thể Của Tài Khoản:
+              </div>
+              <div id="profilePermissionsList" class="perm-badges-grid">
+                <!-- Dynamically populated -->
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- Row 2: Roles & Security Overview -->
+        <section class="section-card" style="margin-bottom: 20px;">
+          <div class="section-header">
+            <div class="section-title">
+              <span style="color: #fbbf24; font-size: 20px;">🛡️</span>
+              <span>Cơ Chế Phân Quyền & Bảo Mật Vai Trò (Roles & RBAC Policy)</span>
+            </div>
+            <span class="status-micro-tag" style="background: rgba(251, 191, 36, 0.2); color: #fbbf24;">CHÍNH SÁCH BẢO MẬT</span>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px;">
+            Hệ thống phân cấp an toàn thành hai nhóm vai trò chính: <strong>Quản Trị Viên (Admin)</strong> và <strong>Kiểm Soát Viên (Mod)</strong>.
+          </p>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;">
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(96, 165, 250, 0.3); border-radius: 10px; padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: #60a5fa; display: flex; align-items: center; gap: 6px;">
+                  <span>👑</span> VAI TRÒ ADMIN (QUẢN TRỊ VIÊN)
+                </h4>
+                <span class="corner-role-pill role-admin">FULL ACCESS</span>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+                Toàn quyền can thiệp hệ thống: gửi lệnh máy chủ, cấu hình Discord Webhook, quản lý Client Keys, bật/tắt chế độ bảo trì và điều chỉnh ma trận phân quyền.
+              </p>
+              <div style="font-size: 11.5px; color: #4ade80; background: rgba(34, 197, 94, 0.1); padding: 6px 10px; border-radius: 6px;">
+                ✓ Có thể đăng nhập và kiểm soát các tài khoản Mod
+              </div>
+            </div>
+
+            <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 10px; padding: 16px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 6px;">
+                  <span>🔍</span> VAI TRÒ MOD (KIỂM SOÁT VIÊN)
+                </h4>
+                <span class="corner-role-pill role-mod">READ-ONLY</span>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;">
+                Chỉ có quyền giám sát và theo dõi (Read-only): xem sự kiện real-time, biểu đồ telemetry, danh sách keys và bảng xếp hạng. Không thể gửi lệnh hay đổi cài đặt.
+              </p>
+              <div style="font-size: 11.5px; color: #ef4444; background: rgba(239, 68, 68, 0.1); padding: 6px 10px; border-radius: 6px;">
+                ✗ Bị chặn tuyệt đối, không thể đăng nhập vào tài khoản Admin
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Row 3: RBAC Security & Interactive Permission Matrix Table -->
+        <section class="section-card">
+          <div class="section-header" style="flex-wrap: wrap; gap: 10px;">
+            <div class="section-title">
+              <span style="color: #60a5fa; font-size: 20px;">⚖️</span>
+              <span>Bảng Ma Trận Cấp Quyền & Phân Quyền (RBAC Permission Matrix)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" id="resetRbacMatrixBtn" class="btn btn-sm btn-outline" title="Khôi phục quyền mặc định">
+                <span>🔄 Khôi Phục Mặc Định</span>
+              </button>
+              <button type="button" id="saveRbacMatrixBtn" class="btn btn-sm btn-neon">
+                <span>💾 Lưu Cài Đặt Phân Quyền</span>
+              </button>
+            </div>
+          </div>
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">
+            Tùy chỉnh phân quyền chi tiết cho từng vai trò trong hệ thống. Nhấp chọn các quyền mong muốn cho vai trò <strong>Admin</strong> hoặc <strong>Mod</strong> rồi nhấn <strong>"Lưu Cài Đặt Phân Quyền"</strong>.
+          </p>
+
+          <div id="rbacStatusFeedback" style="display: none; margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12px;"></div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Hành Động / Chức Năng</th>
+                  <th>Mã Quyền</th>
+                  <th style="text-align: center; color: #60a5fa; min-width: 140px;">QUẢN TRỊ VIÊN (ADMIN)</th>
+                  <th style="text-align: center; color: #fbbf24; min-width: 140px;">KIỂM SOÁT VIÊN (MOD)</th>
+                  <th>Mức Độ Rủi Ro</th>
+                </tr>
+              </thead>
+              <tbody id="rbacMatrixTableBody">
+                <!-- Dynamically rendered and interactive -->
               </tbody>
             </table>
           </div>
@@ -801,6 +1174,39 @@
             <button type="submit" class="btn btn-neon">Lưu Client Key</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Public Fullscreen Maintenance Overlay Modal -->
+    <div id="publicMaintenanceOverlay" class="maintenance-overlay" style="display: none;">
+      <div class="maintenance-box">
+        <div class="maint-icon-radar">
+          <span class="maint-icon-symbol">🛡️</span>
+          <div class="maint-radar-ring ring-1"></div>
+          <div class="maint-radar-ring ring-2"></div>
+        </div>
+        <div class="tech-badge" style="background: rgba(239, 68, 68, 0.15); border-color: #ef4444; color: #ef4444; margin-bottom: 12px;">
+          <span>HỆ THỐNG ĐANG BẢO TRÌ NÂNG CẤP</span>
+        </div>
+        <h2 style="font-size: 26px; font-weight: 800; color: #ffffff; margin-bottom: 8px;">VNLANDZ REPLAY NEXUS</h2>
+        <p id="publicMaintMessage" style="font-size: 14px; color: var(--text-muted); max-width: 480px; margin: 0 auto 24px; line-height: 1.6;">
+          Hệ thống VnlandZ Minecraft Relay đang trong đợt bảo trì nâng cấp định kỳ. Vui lòng quay lại sau!
+        </p>
+
+        <!-- Large Countdown Clock -->
+        <div class="cyber-countdown-large">
+          <div class="countdown-large-label">DỰ KIẾN HOÀN TẤT SAU</div>
+          <div id="publicMaintCountdown" class="countdown-large-clock">00:00:00</div>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 8px; font-family: 'JetBrains Mono', monospace;">
+            Server Time: <span id="publicMaintServerTime">--:--:--</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 24px; display: flex; justify-content: center; gap: 12px;">
+          <button type="button" id="publicMaintStaffLoginBtn" class="btn btn-neon">
+            <span>🔑 Đăng Nhập Quản Trị Viên (Staff Bypass)</span>
+          </button>
+        </div>
       </div>
     </div>
 

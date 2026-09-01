@@ -27,6 +27,53 @@ export interface EmbedConfig {
   showPlayerAvatar: boolean;
 }
 
+export interface StaffAccount {
+  username: string;
+  role: "admin" | "mod";
+  displayName: string;
+  avatarUrl: string;
+  pass: string;
+  description: string;
+}
+
+export interface MaintenanceConfig {
+  enabled: boolean;
+  message: string;
+  startTime: number | null;
+  endTime: number | null;
+  durationMinutes: number;
+  activatedBy: string;
+  allowStaffBypass: boolean;
+}
+
+export interface RbacPermission {
+  code: string;
+  name: string;
+  description: string;
+  admin: boolean;
+  mod: boolean;
+  risk: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+}
+
+export interface PlayerStats {
+  player: string;
+  avatarUrl: string;
+  totalMessages: number;
+  totalDeaths: number;
+  totalJoins: number;
+  totalLeaves: number;
+  totalCommands: number;
+  totalEvents: number;
+  onlineDurationSeconds: number;
+  firstSeen: string;
+  lastSeen: string;
+  lastServer: string;
+  killCount: number;
+  damageCount: number;
+  warningCount: number;
+  activeSessionStart?: number;
+}
+
 export interface AppConfig {
   discordWebhookUrl: string;
   forwardEventsToDiscord: boolean;
@@ -82,9 +129,98 @@ const queues: Map<string, string[]> = (globalThis as any).__vnlandzQueues || new
 const events: Map<string, RelayEvent[]> = (globalThis as any).__vnlandzEvents || new Map();
 const clientKeys: Map<string, ClientKeyMetadata> =
   (globalThis as any).__vnlandzClientKeys || new Map();
+const playerStatsMap: Map<string, PlayerStats> =
+  (globalThis as any).__vnlandzPlayerStats || new Map();
 const auditLogs: AuditLogItem[] = (globalThis as any).__vnlandzAuditLogs || [];
-const sessions: Map<string, { createdAt: number; expiresAt: number }> =
+interface SessionData {
+  username: string;
+  role: "admin" | "mod";
+  displayName: string;
+  avatarUrl: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+const sessions: Map<string, SessionData> =
   (globalThis as any).__vnlandzSessions || new Map();
+
+const maintenanceState: MaintenanceConfig = (globalThis as any).__vnlandzMaintenance || {
+  enabled: false,
+  message: "Hệ thống VnlandZ Minecraft Relay đang trong đợt bảo trì nâng cấp định kỳ.",
+  startTime: null,
+  endTime: null,
+  durationMinutes: 30,
+  activatedBy: "",
+  allowStaffBypass: true,
+};
+
+// Built-in Staff Accounts with explicit passwords & RBAC roles
+const BUILT_IN_STAFF: Record<string, StaffAccount> = {
+  admin: {
+    username: "admin",
+    role: "admin",
+    displayName: "Tổng Quản Trị (Super Admin)",
+    avatarUrl: "https://mc-heads.net/avatar/MHF_Steve/128",
+    pass: process.env.ADMIN_PASS || "admin1234",
+    description: "Toàn quyền cấu hình máy chủ, quản lý keys, lệnh dispatch và chế độ bảo trì.",
+  },
+  admin2: {
+    username: "admin2",
+    role: "admin",
+    displayName: "Phó Quản Trị 2 (Admin 2)",
+    avatarUrl: "https://mc-heads.net/avatar/MHF_Alex/128",
+    pass: "admin2222",
+    description: "Quản trị viên phụ - Toàn quyền cấu hình, điều hành và xử lý sự cố.",
+  },
+  admin3: {
+    username: "admin3",
+    role: "admin",
+    displayName: "Phó Quản Trị 3 (Admin 3)",
+    avatarUrl: "https://mc-heads.net/avatar/MHF_Herobrine/128",
+    pass: "admin3333",
+    description: "Quản trị viên phụ - Toàn quyền cấu hình, điều hành và giám sát cầu nối.",
+  },
+  mod1: {
+    username: "mod1",
+    role: "mod",
+    displayName: "Kiểm Soát Viên 1 (Mod 1)",
+    avatarUrl: "https://mc-heads.net/avatar/mod1/128",
+    pass: "e93ke0",
+    description: "Kiểm soát viên cấp 1 - Chỉ xem dữ liệu sự kiện, bảng xếp hạng và nhật ký (Read-only).",
+  },
+  mod2: {
+    username: "mod2",
+    role: "mod",
+    displayName: "Kiểm Soát Viên 2 (Mod 2)",
+    avatarUrl: "https://mc-heads.net/avatar/mod2/128",
+    pass: "38fj9d2",
+    description: "Kiểm soát viên cấp 2 - Chỉ xem dữ liệu sự kiện, bảng xếp hạng và nhật ký (Read-only).",
+  },
+  mod3: {
+    username: "mod3",
+    role: "mod",
+    displayName: "Kiểm Soát Viên 3 (Mod 3)",
+    avatarUrl: "https://mc-heads.net/avatar/mod3/128",
+    pass: "feoa9d3",
+    description: "Kiểm soát viên cấp 3 - Chỉ xem dữ liệu sự kiện, bảng xếp hạng và nhật ký (Read-only).",
+  },
+  mod4: {
+    username: "mod4",
+    role: "mod",
+    displayName: "Kiểm Soát Viên 4 (Mod 4)",
+    avatarUrl: "https://mc-heads.net/avatar/mod4/128",
+    pass: "39kfe3re",
+    description: "Kiểm soát viên cấp 4 - Chỉ xem dữ liệu sự kiện, bảng xếp hạng và nhật ký (Read-only).",
+  },
+  mod5: {
+    username: "mod5",
+    role: "mod",
+    displayName: "Kiểm Soát Viên 5 (Mod 5)",
+    avatarUrl: "https://mc-heads.net/avatar/mod5/128",
+    pass: "38jfa32d",
+    description: "Kiểm soát viên cấp 5 - Chỉ xem dữ liệu sự kiện, bảng xếp hạng và nhật ký (Read-only).",
+  },
+};
 
 const defaultEmbedConfig: EmbedConfig = {
   themeColor: "#00f2fe",
@@ -127,9 +263,131 @@ const loginAttempts: Map<string, LoginAttemptInfo> =
 const rateLimits: Map<string, RateLimitInfo> =
   (globalThis as any).__vnlandzRateLimits || new Map();
 
+const DEFAULT_RBAC_MATRIX: RbacPermission[] = [
+  {
+    code: "VIEW_EVENTS",
+    name: "Xem Console & Dữ Liệu Sự Kiện Real-time",
+    description: "Truy cập giao diện console, xem log sự kiện và tin nhắn chat theo thời gian thực.",
+    admin: true,
+    mod: true,
+    risk: "LOW",
+  },
+  {
+    code: "VIEW_LEADERBOARDS",
+    name: "Xem BXH Hoạt Động & Thống Kê Người Chơi",
+    description: "Xem xếp hạng người chơi nói nhiều nhất, tử vong, thời gian online, PvP kills.",
+    admin: true,
+    mod: true,
+    risk: "LOW",
+  },
+  {
+    code: "VIEW_KEYS",
+    name: "Xem Danh Sách Client Keys & Trạng Thái",
+    description: "Xem các key kết nối Minecraft client và thời gian hoạt động gần nhất.",
+    admin: true,
+    mod: true,
+    risk: "LOW",
+  },
+  {
+    code: "VIEW_LOGS",
+    name: "Xem Biểu Đồ Analytics & Audit Logs",
+    description: "Xem biểu đồ telemetry, nhật ký kiểm toán hệ thống và lưu lượng mạng.",
+    admin: true,
+    mod: true,
+    risk: "LOW",
+  },
+  {
+    code: "AI_STUDIO",
+    name: "Sử Dụng AI Gemini Summarizer & Chat Filter",
+    description: "Gọi AI để tóm tắt phiên chơi hoặc kiểm duyệt nội dung độc hại.",
+    admin: true,
+    mod: true,
+    risk: "MEDIUM",
+  },
+  {
+    code: "SEND_COMMAND",
+    name: "Gửi Lệnh / Command Dispatcher Vào Máy Chủ",
+    description: "Đưa lệnh Minecraft vào hàng đợi để client thực thi trên máy chủ.",
+    admin: true,
+    mod: false,
+    risk: "HIGH",
+  },
+  {
+    code: "MANAGE_KEYS",
+    name: "Thêm, Sửa, Vô Hiệu Hóa, Xoá Client Keys",
+    description: "Quản lý toàn bộ danh sách Client Keys kết nối.",
+    admin: true,
+    mod: false,
+    risk: "HIGH",
+  },
+  {
+    code: "EDIT_SETTINGS",
+    name: "Thay Đổi Cấu Hình Discord Webhook & Embed",
+    description: "Cập nhật link webhook Discord, mẫu Embed và bộ lọc sự kiện.",
+    admin: true,
+    mod: false,
+    risk: "HIGH",
+  },
+  {
+    code: "TOGGLE_MAINTENANCE",
+    name: "Bật / Tắt Chế Độ Bảo Trì 1-Chạm (Lockdown)",
+    description: "Kích hoạt hoặc gỡ bỏ trạng thái bảo trì hệ thống toàn cầu.",
+    admin: true,
+    mod: false,
+    risk: "HIGH",
+  },
+  {
+    code: "RESET_DATA",
+    name: "Xoá Hàng Đợi Lệnh / Reset BXH Hoạt Động",
+    description: "Xoá sạch hàng đợi hoặc đặt lại toàn bộ bảng thống kê người chơi về 0.",
+    admin: true,
+    mod: false,
+    risk: "CRITICAL",
+  },
+  {
+    code: "BACKUP_RESTORE",
+    name: "Sao Lưu & Khôi Phục Dữ Liệu Toàn Cục (.json)",
+    description: "Tải file backup JSON hoặc ghi đè trạng thái hệ thống từ file sao lưu.",
+    admin: true,
+    mod: false,
+    risk: "CRITICAL",
+  },
+];
+
+let rbacMatrix: RbacPermission[] =
+  (globalThis as any).__vnlandzRbacMatrix || JSON.parse(JSON.stringify(DEFAULT_RBAC_MATRIX));
+(globalThis as any).__vnlandzRbacMatrix = rbacMatrix;
+
+function hasPermission(role: "admin" | "mod", code: string): boolean {
+  const perm = rbacMatrix.find((p) => p.code === code);
+  if (!perm) return role === "admin";
+  return role === "admin" ? perm.admin : perm.mod;
+}
+
+function getMaintenanceStatus() {
+  const now = Date.now();
+  let remainingSeconds = 0;
+  if (maintenanceState.enabled && maintenanceState.endTime && maintenanceState.endTime > now) {
+    remainingSeconds = Math.max(0, Math.floor((maintenanceState.endTime - now) / 1000));
+  } else if (maintenanceState.enabled && maintenanceState.endTime && maintenanceState.endTime <= now) {
+    maintenanceState.enabled = false;
+    maintenanceState.startTime = null;
+    maintenanceState.endTime = null;
+    maintenanceState.activatedBy = "";
+    persistData();
+  }
+  return {
+    ...maintenanceState,
+    active: maintenanceState.enabled,
+    remainingSeconds,
+    serverTime: now,
+  };
+}
+
 (globalThis as any).__vnlandzQueues = queues;
 (globalThis as any).__vnlandzEvents = events;
 (globalThis as any).__vnlandzClientKeys = clientKeys;
+(globalThis as any).__vnlandzPlayerStats = playerStatsMap;
 (globalThis as any).__vnlandzAuditLogs = auditLogs;
 (globalThis as any).__vnlandzSessions = sessions;
 (globalThis as any).__vnlandzDiscordStats = discordStats;
@@ -137,6 +395,7 @@ const rateLimits: Map<string, RateLimitInfo> =
 (globalThis as any).__vnlandzCounters = requestCounters;
 (globalThis as any).__vnlandzLoginAttempts = loginAttempts;
 (globalThis as any).__vnlandzRateLimits = rateLimits;
+(globalThis as any).__vnlandzMaintenance = maintenanceState;
 
 // Limits & Constants
 const MAX_QUEUE = 50;
@@ -152,6 +411,91 @@ const PORT = 3000;
 // Persistent Storage File (VI.1)
 const DATA_DIR = path.join(process.cwd(), "data");
 const DATA_FILE = path.join(DATA_DIR, "store.json");
+
+// Player Statistics & Leaderboard Processing Engine
+function trackPlayerEvent(event: RelayEvent) {
+  const rawPlayer = event.player && event.player !== "Unknown_Player" ? event.player.trim() : "";
+  if (!rawPlayer || rawPlayer === "Minecraft Client" || rawPlayer === "Admin / Discord Bridge") {
+    return;
+  }
+
+  const cleanPlayerName = rawPlayer.replace(/[^\w\s\-_.]/g, "").trim();
+  if (!cleanPlayerName) return;
+
+  const nowTime = new Date().toISOString();
+  const nowMs = Date.now();
+
+  let stat = playerStatsMap.get(cleanPlayerName);
+  if (!stat) {
+    stat = {
+      player: cleanPlayerName,
+      avatarUrl: `https://mc-heads.net/avatar/${encodeURIComponent(cleanPlayerName)}/128`,
+      totalMessages: 0,
+      totalDeaths: 0,
+      totalJoins: 0,
+      totalLeaves: 0,
+      totalCommands: 0,
+      totalEvents: 0,
+      onlineDurationSeconds: 0,
+      firstSeen: nowTime,
+      lastSeen: nowTime,
+      lastServer: event.server || "Minecraft Server",
+      killCount: 0,
+      damageCount: 0,
+      warningCount: 0,
+      activeSessionStart: nowMs,
+    };
+  }
+
+  stat.totalEvents++;
+  stat.lastSeen = nowTime;
+  if (event.server) stat.lastServer = event.server;
+
+  const typeUpper = (event.type || "LOG").toUpperCase();
+  const msg = (event.message || "").toLowerCase();
+
+  if (typeUpper === "CHAT") {
+    stat.totalMessages++;
+  } else if (typeUpper === "JOIN") {
+    stat.totalJoins++;
+    stat.activeSessionStart = nowMs;
+  } else if (typeUpper === "LEAVE") {
+    stat.totalLeaves++;
+    if (stat.activeSessionStart) {
+      const sessionSecs = Math.max(10, Math.floor((nowMs - stat.activeSessionStart) / 1000));
+      stat.onlineDurationSeconds += sessionSecs;
+      stat.activeSessionStart = undefined;
+    }
+  } else if (typeUpper === "DEATH") {
+    stat.totalDeaths++;
+  } else if (typeUpper === "COMMAND" || typeUpper === "REPLAY") {
+    stat.totalCommands++;
+  } else if (typeUpper === "DAMAGE") {
+    stat.damageCount++;
+  }
+
+  // Detect kills & warnings from text context
+  if (msg.includes("slain by") || msg.includes("killed by") || msg.includes("shot by")) {
+    if (msg.includes(cleanPlayerName.toLowerCase())) {
+      stat.killCount++;
+    }
+  }
+  if (msg.includes("warning") || msg.includes("cảnh cáo") || msg.includes("kicked") || msg.includes("muted")) {
+    stat.warningCount++;
+  }
+
+  // Auto-accumulate live playtime for active sessions
+  if (stat.activeSessionStart) {
+    const elapsed = Math.floor((nowMs - stat.activeSessionStart) / 1000);
+    if (elapsed > 0 && elapsed < 86400) {
+      stat.onlineDurationSeconds += Math.min(elapsed, 30);
+      stat.activeSessionStart = nowMs;
+    }
+  }
+
+  playerStatsMap.set(cleanPlayerName, stat);
+  persistData();
+}
 
 function loadPersistedData() {
   try {
@@ -183,12 +527,32 @@ function loadPersistedData() {
           if (Array.isArray(ev)) events.set(k, ev as RelayEvent[]);
         }
       }
-      if (Array.isArray(parsed.auditLogs)) {
+      if (parsed.auditLogs && Array.isArray(parsed.auditLogs)) {
         auditLogs.length = 0;
         auditLogs.push(...parsed.auditLogs.slice(-MAX_AUDIT_LOGS));
       }
+      if (parsed.playerStats && typeof parsed.playerStats === "object") {
+        playerStatsMap.clear();
+        for (const [p, st] of Object.entries(parsed.playerStats)) {
+          if (st && typeof st === "object") {
+            playerStatsMap.set(p, st as PlayerStats);
+          }
+        }
+      }
       if (parsed.discordStats) {
         Object.assign(discordStats, parsed.discordStats);
+      }
+      if (parsed.maintenance) {
+        Object.assign(maintenanceState, parsed.maintenance);
+      }
+      if (parsed.rbacMatrix && Array.isArray(parsed.rbacMatrix)) {
+        for (const item of parsed.rbacMatrix) {
+          const existing = rbacMatrix.find((p) => p.code === item.code);
+          if (existing) {
+            if (typeof item.admin === "boolean") existing.admin = item.admin;
+            if (typeof item.mod === "boolean") existing.mod = item.mod;
+          }
+        }
       }
       console.log("[Persistence] Successfully loaded stored state from data/store.json");
     }
@@ -212,8 +576,11 @@ function persistData() {
         clientKeys: Array.from(clientKeys.values()),
         queues: Object.fromEntries(queues.entries()),
         events: Object.fromEntries(events.entries()),
+        playerStats: Object.fromEntries(playerStatsMap.entries()),
         auditLogs: auditLogs.slice(-MAX_AUDIT_LOGS),
         discordStats,
+        maintenance: maintenanceState,
+        rbacMatrix,
       };
       fs.writeFileSync(DATA_FILE, JSON.stringify(dataToSave, null, 2), "utf-8");
     } catch (err) {
@@ -637,18 +1004,56 @@ app.post("/login", (req: Request, res: Response) => {
     return;
   }
 
-  const username = String(req.body.username || "").trim();
-  const password = String(req.body.password || "").trim();
+  const usernameInput = String(req.body.username || "").trim();
+  const passwordInput = String(req.body.password || "").trim();
 
-  const isUserValid = timingSafeCompare(username, ADMIN_USER);
-  const isPassValid = timingSafeCompare(password, ADMIN_PASS);
+  // Find staff account (case-insensitive username check)
+  const matchedKey = Object.keys(BUILT_IN_STAFF).find(
+    (k) => k.toLowerCase() === usernameInput.toLowerCase()
+  );
+  const staff = matchedKey ? BUILT_IN_STAFF[matchedKey] : null;
 
-  if (isUserValid && isPassValid) {
+  let isValid = false;
+  if (staff) {
+    if (staff.role === "admin") {
+      // Admin account: ONLY this admin's password or master ADMIN_PASS can log in.
+      // Mod passwords CAN NEVER log into an admin account!
+      isValid = timingSafeCompare(passwordInput, staff.pass) || timingSafeCompare(passwordInput, ADMIN_PASS);
+    } else {
+      // Mod account (mod1..mod5):
+      // 1. Mod's own password
+      // 2. OR ANY Admin account password (master ADMIN_PASS, admin1234, admin2222, admin3333)
+      const isModOwnPass = timingSafeCompare(passwordInput, staff.pass);
+      const isMasterAdminPass = timingSafeCompare(passwordInput, ADMIN_PASS);
+      const isAdminStaffPass = Object.values(BUILT_IN_STAFF)
+        .filter((s) => s.role === "admin")
+        .some((adminStaff) => timingSafeCompare(passwordInput, adminStaff.pass));
+
+      isValid = isModOwnPass || isMasterAdminPass || isAdminStaffPass;
+    }
+  } else if (timingSafeCompare(usernameInput, ADMIN_USER) && timingSafeCompare(passwordInput, ADMIN_PASS)) {
+    isValid = true;
+  }
+
+  if (isValid) {
     loginAttempts.delete(ip);
+
+    const effectiveUser = staff?.username || usernameInput;
+    const effectiveRole = staff?.role || "admin";
+    const effectiveDisplayName = staff?.displayName || (effectiveRole === "admin" ? "Quản Trị Viên" : "Kiểm Soát Viên");
+    const effectiveAvatar =
+      staff?.avatarUrl || `https://mc-heads.net/avatar/${encodeURIComponent(effectiveUser)}/128`;
 
     const token = "vnz_sec_" + crypto.randomBytes(32).toString("hex");
     const expiresAt = now + SESSION_TTL_MS;
-    sessions.set(token, { createdAt: now, expiresAt });
+    sessions.set(token, {
+      username: effectiveUser,
+      role: effectiveRole,
+      displayName: effectiveDisplayName,
+      avatarUrl: effectiveAvatar,
+      createdAt: now,
+      expiresAt,
+    });
 
     res.setHeader(
       "Set-Cookie",
@@ -657,11 +1062,22 @@ app.post("/login", (req: Request, res: Response) => {
       }`
     );
 
-    addAuditLog(ip, "LOGIN_SUCCESS", `Đăng nhập thành công với tài khoản: ${username}`, "info");
+    addAuditLog(
+      ip,
+      "LOGIN_SUCCESS",
+      `Đăng nhập thành công: ${effectiveDisplayName} (${effectiveUser}) [Vai trò: ${effectiveRole.toUpperCase()}]`,
+      "info"
+    );
 
     res.json({
       ok: true,
       token,
+      user: {
+        username: effectiveUser,
+        role: effectiveRole,
+        displayName: effectiveDisplayName,
+        avatarUrl: effectiveAvatar,
+      },
       message: "Đăng nhập thành công",
     });
     return;
@@ -683,7 +1099,7 @@ app.post("/login", (req: Request, res: Response) => {
   addAuditLog(
     ip,
     "LOGIN_FAILED",
-    `Sai thông tin đăng nhập (Tài khoản thử: ${username}, Lần thử: ${currentCount}/5)`,
+    `Sai thông tin đăng nhập (Tài khoản thử: ${usernameInput}, Lần thử: ${currentCount}/5)`,
     "warn"
   );
 
@@ -699,6 +1115,74 @@ app.post("/login", (req: Request, res: Response) => {
   res.status(401).json({
     ok: false,
     error: `Sai tài khoản hoặc mật khẩu! (Còn ${MAX_LOGIN_ATTEMPTS - currentCount} lần thử)`,
+  });
+});
+
+app.post("/admin/switch-account", checkAuth, (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const currentUser = (req as any).user;
+  const targetUsername = String(req.body.targetUsername || "").trim();
+
+  const matchedKey = Object.keys(BUILT_IN_STAFF).find(
+    (k) => k.toLowerCase() === targetUsername.toLowerCase()
+  );
+  const targetStaff = matchedKey ? BUILT_IN_STAFF[matchedKey] : null;
+
+  if (!targetStaff) {
+    res.status(404).json({ ok: false, error: "Không tìm thấy tài khoản nhân viên chỉ định!" });
+    return;
+  }
+
+  // Rule: Admin can switch to ANY mod account or any admin account.
+  // Mod CANNOT switch to an Admin account!
+  if (currentUser.role === "mod" && targetStaff.role === "admin") {
+    addAuditLog(
+      ip,
+      "RBAC_BLOCKED",
+      `Tài khoản Moderator '${currentUser.username}' bị chặn khi cố gắng chiếm quyền Admin '${targetStaff.username}'`,
+      "security"
+    );
+    res.status(403).json({
+      ok: false,
+      error: "BỊ TỪ CHỐI: Tài khoản Kiểm Soát Viên (Mod) KHÔNG ĐƯỢC PHÉP chuyển sang tài khoản Quản Trị Viên (Admin)!",
+    });
+    return;
+  }
+
+  const now = Date.now();
+  const token = "vnz_sec_" + crypto.randomBytes(32).toString("hex");
+  const expiresAt = now + SESSION_TTL_MS;
+  sessions.set(token, {
+    username: targetStaff.username,
+    role: targetStaff.role,
+    displayName: targetStaff.displayName,
+    avatarUrl: targetStaff.avatarUrl,
+    createdAt: now,
+    expiresAt,
+  });
+
+  res.setHeader(
+    "Set-Cookie",
+    `admin_token=${token}; Path=/; HttpOnly; SameSite=None; Secure; Max-Age=${SESSION_TTL_MS / 1000}`
+  );
+
+  addAuditLog(
+    ip,
+    "ACCOUNT_SWITCH",
+    `Chuyển đổi phiên đăng nhập từ '${currentUser.username}' sang '${targetStaff.username}' [Vai trò: ${targetStaff.role.toUpperCase()}]`,
+    "info"
+  );
+
+  res.json({
+    ok: true,
+    token,
+    user: {
+      username: targetStaff.username,
+      role: targetStaff.role,
+      displayName: targetStaff.displayName,
+      avatarUrl: targetStaff.avatarUrl,
+    },
+    message: `Đã chuyển đổi thành công sang tài khoản ${targetStaff.displayName} (${targetStaff.username})!`,
   });
 });
 
@@ -721,7 +1205,7 @@ app.all("/logout", (req: Request, res: Response) => {
   res.json({ ok: true, message: "Đã đăng xuất an toàn" });
 });
 
-// Middleware for Admin Route Protection
+// Middleware for Authenticated Staff (Admin or Moderator)
 function checkAuth(req: Request, res: Response, next: NextFunction) {
   const cookies = parseCookies(req.headers.cookie);
   const authHeader = req.headers.authorization;
@@ -747,6 +1231,63 @@ function checkAuth(req: Request, res: Response, next: NextFunction) {
     return;
   }
 
+  if (session) {
+    (req as any).user = {
+      username: session.username,
+      role: session.role,
+      displayName: session.displayName,
+      avatarUrl: session.avatarUrl,
+    };
+  }
+
+  next();
+}
+
+// Middleware for Dynamic RBAC Permission Check
+function requirePermission(permCode: string) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as any).user;
+    if (!user) {
+      res.status(401).json({ ok: false, error: "Chưa xác thực danh tính" });
+      return;
+    }
+    if (!hasPermission(user.role, permCode)) {
+      const ip = getClientIp(req);
+      const permObj = rbacMatrix.find((p) => p.code === permCode);
+      const permName = permObj ? permObj.name : permCode;
+      addAuditLog(
+        ip,
+        "RBAC_DENIED",
+        `Tài khoản '${user.username}' [Vai trò: ${user.role.toUpperCase()}] bị từ chối quyền: ${permName} (${permCode})`,
+        "warn"
+      );
+      res.status(403).json({
+        ok: false,
+        error: `Từ chối truy cập: Bạn không có quyền '${permName}' (${permCode}). Vui lòng liên hệ Quản Trị Viên (Admin) để cấp quyền!`,
+      });
+      return;
+    }
+    next();
+  };
+}
+
+// Legacy helper for Admin-Only Write Operations
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const user = (req as any).user;
+  if (!user || user.role !== "admin") {
+    const ip = getClientIp(req);
+    addAuditLog(
+      ip,
+      "RBAC_BLOCKED",
+      `Tài khoản Moderator '${user?.username || "Ẩn danh"}' bị chặn khi cố gắng thao tác ghi (${req.method} ${req.path})`,
+      "warn"
+    );
+    res.status(403).json({
+      ok: false,
+      error: `Từ chối truy cập: Tài khoản '${user?.username || "Moderator"}' chỉ có quyền XEM DỮ LIỆU (Read-only). Hành động này yêu cầu quyền Quản Trị Viên (Admin)!`,
+    });
+    return;
+  }
   next();
 }
 
@@ -803,6 +1344,17 @@ wss.on("connection", (ws: ExtWebSocket, req) => {
       if (data.type === "DISPATCH_COMMAND" && data.clientKey && data.command) {
         const key = cleanKey(data.clientKey);
         const cmd = normalizeIncoming(data.command);
+        const token = cleanText(data.token || "");
+        const session = token ? sessions.get(token) : null;
+        if (session && session.role === "mod") {
+          ws.send(
+            JSON.stringify({
+              type: "COMMAND_ERROR",
+              error: "Tài khoản Moderator chỉ có quyền xem dữ liệu (Read-only), không thể gửi lệnh!",
+            })
+          );
+          return;
+        }
         if (cmd) {
           pushMessage(key, cmd);
         }
@@ -826,6 +1378,7 @@ wss.on("connection", (ws: ExtWebSocket, req) => {
         list.push(item);
         while (list.length > MAX_EVENTS) list.shift();
         events.set(key, list);
+        trackPlayerEvent(item);
         persistData();
 
         broadcastToWs({
@@ -897,8 +1450,206 @@ function notifyMinecraftClientWs(clientKey: string, command: string) {
 }
 
 // ==========================================
-// 6. Protected Admin APIs
+// 6. Protected Admin APIs & RBAC Management
 // ==========================================
+
+// Current Staff Profile & Permissions
+app.get("/admin/me", checkAuth, (req: Request, res: Response) => {
+  const user = (req as any).user;
+  const role = user.role as "admin" | "mod";
+  res.json({
+    ok: true,
+    user: {
+      username: user.username,
+      role: user.role,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      permissions: {
+        canViewDashboard: hasPermission(role, "VIEW_EVENTS"),
+        canViewLeaderboards: hasPermission(role, "VIEW_LEADERBOARDS"),
+        canViewLogs: hasPermission(role, "VIEW_LOGS"),
+        canViewKeys: hasPermission(role, "VIEW_KEYS"),
+        canSendCommand: hasPermission(role, "SEND_COMMAND"),
+        canManageKeys: hasPermission(role, "MANAGE_KEYS"),
+        canEditSettings: hasPermission(role, "EDIT_SETTINGS"),
+        canToggleMaintenance: hasPermission(role, "TOGGLE_MAINTENANCE"),
+        canClearQueue: hasPermission(role, "RESET_DATA"),
+        canResetStats: hasPermission(role, "RESET_DATA"),
+        canBackupRestore: hasPermission(role, "BACKUP_RESTORE"),
+        canUseAi: hasPermission(role, "AI_STUDIO"),
+      },
+    },
+    maintenance: getMaintenanceStatus(),
+  });
+});
+
+// Staff Accounts Directory & RBAC Matrix
+app.get("/admin/staff", checkAuth, (req: Request, res: Response) => {
+  const staffList = Object.values(BUILT_IN_STAFF).map((s) => ({
+    username: s.username,
+    role: s.role,
+    displayName: s.displayName,
+    avatarUrl: s.avatarUrl,
+    description: s.description,
+  }));
+
+  res.json({
+    ok: true,
+    currentUser: (req as any).user,
+    staff: staffList,
+    matrix: rbacMatrix,
+  });
+});
+
+// GET dynamic RBAC Matrix
+app.get("/admin/rbac/matrix", checkAuth, (req: Request, res: Response) => {
+  res.json({
+    ok: true,
+    matrix: rbacMatrix,
+  });
+});
+
+// SAVE dynamic RBAC Matrix (Editable permissions for Admin and Mod)
+app.post("/admin/rbac/matrix", checkAuth, requirePermission("EDIT_SETTINGS"), rateLimit(30, 60000), (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const matrixInput = req.body.matrix;
+
+  if (!Array.isArray(matrixInput)) {
+    res.status(400).json({ ok: false, error: "Dữ liệu ma trận phân quyền không hợp lệ!" });
+    return;
+  }
+
+  for (const item of matrixInput) {
+    if (item && typeof item.code === "string") {
+      const existing = rbacMatrix.find((p) => p.code === item.code);
+      if (existing) {
+        if (typeof item.admin === "boolean") existing.admin = item.admin;
+        if (typeof item.mod === "boolean") existing.mod = item.mod;
+      }
+    }
+  }
+
+  persistData();
+  addAuditLog(ip, "RBAC_MATRIX_UPDATED", "Cập nhật cài đặt Ma Trận Cấp Quyền & Phân Quyền (RBAC Matrix)", "warn");
+
+  broadcastToWs({
+    type: "RBAC_MATRIX_UPDATED",
+    matrix: rbacMatrix,
+  });
+
+  res.json({
+    ok: true,
+    message: "Đã lưu cài đặt Ma Trận Cấp Quyền (RBAC Matrix) thành công!",
+    matrix: rbacMatrix,
+  });
+});
+
+// RESET dynamic RBAC Matrix to default
+app.post("/admin/rbac/reset", checkAuth, requirePermission("EDIT_SETTINGS"), rateLimit(10, 60000), (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  rbacMatrix = JSON.parse(JSON.stringify(DEFAULT_RBAC_MATRIX));
+  (globalThis as any).__vnlandzRbacMatrix = rbacMatrix;
+
+  persistData();
+  addAuditLog(ip, "RBAC_MATRIX_RESET", "Đã khôi phục Ma Trận Phân Quyền (RBAC Matrix) về mặc định ban đầu", "info");
+
+  broadcastToWs({
+    type: "RBAC_MATRIX_UPDATED",
+    matrix: rbacMatrix,
+  });
+
+  res.json({
+    ok: true,
+    message: "Đã khôi phục Ma Trận Cấp Quyền về mặc định thành công!",
+    matrix: rbacMatrix,
+  });
+});
+
+// Public Maintenance Status
+app.get(["/api/maintenance", "/api/maintenance/status", "/maintenance"], (req: Request, res: Response) => {
+  res.json({
+    ok: true,
+    maintenance: getMaintenanceStatus(),
+  });
+});
+
+// 1-Click Maintenance Mode Toggle (Admin-Only)
+app.post("/admin/maintenance", checkAuth, requirePermission("TOGGLE_MAINTENANCE"), rateLimit(30, 60000), (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  const user = (req as any).user;
+  const body = req.body || {};
+
+  let isEnabled: boolean;
+  if (typeof body.active === "boolean") {
+    isEnabled = body.active;
+  } else if (typeof body.enabled === "boolean") {
+    isEnabled = body.enabled;
+  } else {
+    isEnabled = !maintenanceState.enabled;
+  }
+
+  const dur =
+    typeof body.minutes === "number" && body.minutes > 0
+      ? body.minutes
+      : typeof body.durationMinutes === "number" && body.durationMinutes > 0
+      ? body.durationMinutes
+      : maintenanceState.durationMinutes || 30;
+
+  const msg =
+    typeof body.reason === "string" && body.reason.trim()
+      ? cleanText(body.reason)
+      : typeof body.message === "string" && body.message.trim()
+      ? cleanText(body.message)
+      : maintenanceState.message;
+
+  const now = Date.now();
+
+  maintenanceState.enabled = isEnabled;
+  if (isEnabled) {
+    maintenanceState.startTime = now;
+    maintenanceState.durationMinutes = dur;
+    maintenanceState.endTime =
+      typeof body.endTime === "number" && body.endTime > now ? body.endTime : now + dur * 60 * 1000;
+    maintenanceState.activatedBy = user?.displayName || user?.username || "Admin";
+    maintenanceState.message = msg || "Hệ thống VnlandZ Minecraft Relay đang trong đợt bảo trì nâng cấp định kỳ.";
+
+    addAuditLog(
+      ip,
+      "MAINTENANCE_ENABLED",
+      `Quản trị viên ${user?.username} đã KÍCH HOẠT Chế độ Bảo trì (${dur} phút): "${maintenanceState.message}"`,
+      "warn"
+    );
+  } else {
+    maintenanceState.startTime = null;
+    maintenanceState.endTime = null;
+    maintenanceState.activatedBy = "";
+
+    addAuditLog(
+      ip,
+      "MAINTENANCE_DISABLED",
+      `Quản trị viên ${user?.username} đã TẮT Chế độ Bảo trì, mở lại toàn bộ hệ thống`,
+      "info"
+    );
+  }
+
+  persistData();
+
+  const status = getMaintenanceStatus();
+
+  // Broadcast maintenance change to all dashboards & clients
+  broadcastToWs({
+    type: "MAINTENANCE_UPDATED",
+    maintenance: status,
+  });
+
+  res.json({
+    ok: true,
+    message: isEnabled
+      ? `Đã kích hoạt Chế độ Bảo trì thành công! Đếm ngược ${dur} phút.`
+      : "Đã tắt Chế độ Bảo trì thành công. Hệ thống hoạt động bình thường!",
+    maintenance: status,
+  });
+});
 
 app.get("/admin/data", checkAuth, rateLimit(100, 60000), (req: Request, res: Response) => {
   const clientIp = getClientIp(req);
@@ -913,6 +1664,17 @@ app.get("/admin/data", checkAuth, rateLimit(100, 60000), (req: Request, res: Res
     };
   }
 
+  const cookies = parseCookies(req.headers.cookie);
+  const authHeader = req.headers.authorization;
+  let token = cookies.admin_token;
+  if (!token && authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7).trim();
+  }
+  if (!token && req.headers["x-admin-token"]) {
+    token = String(req.headers["x-admin-token"]).trim();
+  }
+  const session = token ? sessions.get(token) : null;
+
   const mem = process.memoryUsage();
   const uptimeSec = Math.floor(process.uptime());
   const totalDispatches = discordStats.forwarded + discordStats.failed;
@@ -921,6 +1683,13 @@ app.get("/admin/data", checkAuth, rateLimit(100, 60000), (req: Request, res: Res
 
   res.json({
     ok: true,
+    auth: {
+      username: session ? session.username : "admin",
+      displayName: session ? session.displayName : "Tổng Quản Trị",
+      role: session ? session.role : "admin",
+      avatarUrl: session ? session.avatarUrl : "https://mc-heads.net/avatar/MHF_Steve/128",
+    },
+    maintenance: getMaintenanceStatus(),
     stats: {
       totalClients: allKeys.size,
       activeIp: clientIp,
@@ -956,7 +1725,7 @@ app.get("/admin/data", checkAuth, rateLimit(100, 60000), (req: Request, res: Res
   });
 });
 
-app.post("/admin/settings", checkAuth, rateLimit(30, 60000), (req: Request, res: Response) => {
+app.post("/admin/settings", checkAuth, requirePermission("EDIT_SETTINGS"), rateLimit(30, 60000), (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const body = req.body;
   if (typeof body.discordWebhookUrl === "string") {
@@ -1022,7 +1791,7 @@ app.get("/admin/keys", checkAuth, (req: Request, res: Response) => {
   });
 });
 
-app.post("/admin/keys", checkAuth, rateLimit(30, 60000), (req: Request, res: Response) => {
+app.post("/admin/keys", checkAuth, requirePermission("MANAGE_KEYS"), rateLimit(30, 60000), (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const { key, label, status, notes } = req.body;
   const cleaned = cleanKey(key);
@@ -1048,7 +1817,7 @@ app.post("/admin/keys", checkAuth, rateLimit(30, 60000), (req: Request, res: Res
   res.json({ ok: true, message: "Lưu Client Key thành công!", key: record });
 });
 
-app.delete("/admin/keys/:key", checkAuth, (req: Request, res: Response) => {
+app.delete("/admin/keys/:key", checkAuth, requirePermission("MANAGE_KEYS"), (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const targetKey = cleanKey(req.params.key);
   if (clientKeys.has(targetKey)) {
@@ -1061,6 +1830,174 @@ app.delete("/admin/keys/:key", checkAuth, (req: Request, res: Response) => {
   } else {
     res.status(404).json({ ok: false, error: "Không tìm thấy Key cần xoá" });
   }
+});
+
+// Leaderboards & Player Stats API (Top Active, Top Deaths, Top Chat, etc.)
+app.get("/admin/leaderboards", checkAuth, rateLimit(60, 60000), (req: Request, res: Response) => {
+  const allStats = Array.from(playerStatsMap.values());
+
+  // 1. Top Chat / Message Count (Nói nhiều nhất)
+  const topChat = [...allStats]
+    .sort((a, b) => b.totalMessages - a.totalMessages || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 2. Top Deaths (Tử vong nhiều nhất)
+  const topDeaths = [...allStats]
+    .sort((a, b) => b.totalDeaths - a.totalDeaths || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 3. Top Playtime / Online Duration (Online lâu nhất)
+  const topPlaytime = [...allStats]
+    .sort((a, b) => b.onlineDurationSeconds - a.onlineDurationSeconds || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 4. Top Kills / PvP Warriors (Chiến thần tiêu diệt)
+  const topKills = [...allStats]
+    .sort((a, b) => b.killCount - a.killCount || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 5. Top Joins / Loyal Frequent Visitors (Chăm chỉ đăng nhập nhất)
+  const topJoins = [...allStats]
+    .sort((a, b) => b.totalJoins - a.totalJoins || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 6. Top Commands Executed / Power Users (Sử dụng lệnh nhiều nhất)
+  const topCommands = [...allStats]
+    .sort((a, b) => b.totalCommands - a.totalCommands || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 7. Top Damage / Combat Engaged (Bị dính sát thương / Giao tranh nhiều nhất)
+  const topDamage = [...allStats]
+    .sort((a, b) => b.damageCount - a.damageCount || b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  // 8. Top Total Activity Score (Tổng điểm tương tác máy chủ toàn diện)
+  const topActivity = [...allStats]
+    .sort(
+      (a, b) =>
+        b.totalEvents * 2 +
+        b.totalMessages * 3 +
+        b.onlineDurationSeconds / 60 -
+        (a.totalEvents * 2 + a.totalMessages * 3 + a.onlineDurationSeconds / 60)
+    )
+    .slice(0, 10);
+
+  // 9. Top Clean Record / Zero Violations (Người chơi gương mẫu, 0 cảnh cáo)
+  const topClean = [...allStats]
+    .filter((p) => p.warningCount === 0 && p.totalEvents > 0)
+    .sort((a, b) => b.totalEvents - a.totalEvents)
+    .slice(0, 10);
+
+  res.json({
+    ok: true,
+    totalPlayers: allStats.length,
+    leaderboards: {
+      topChat,
+      topDeaths,
+      topPlaytime,
+      topKills,
+      topJoins,
+      topCommands,
+      topDamage,
+      topActivity,
+      topClean,
+    },
+  });
+});
+
+// Player Specific Leaderboard Search & Overall Ranking API
+app.get("/admin/leaderboards/player/:name", checkAuth, rateLimit(60, 60000), (req: Request, res: Response) => {
+  const rawName = req.params.name;
+  if (!rawName) {
+    res.status(400).json({ ok: false, error: "Tên người chơi không được để trống" });
+    return;
+  }
+
+  const queryName = rawName.trim().toLowerCase();
+  const allStats = Array.from(playerStatsMap.values());
+
+  // Find direct match or close matches
+  const matchedPlayer = allStats.find((p) => p.player.toLowerCase() === queryName) ||
+    allStats.find((p) => p.player.toLowerCase().includes(queryName));
+
+  if (!matchedPlayer) {
+    res.status(404).json({
+      ok: false,
+      error: `Không tìm thấy người chơi có tên chứa "${rawName}" trong dữ liệu thống kê.`,
+      totalPlayers: allStats.length,
+    });
+    return;
+  }
+
+  const target = matchedPlayer;
+
+  // Calculate exact absolute ranking across all categories
+  const sortedChat = [...allStats].sort((a, b) => b.totalMessages - a.totalMessages || b.totalEvents - a.totalEvents);
+  const rankChat = sortedChat.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedDeaths = [...allStats].sort((a, b) => b.totalDeaths - a.totalDeaths || b.totalEvents - a.totalEvents);
+  const rankDeaths = sortedDeaths.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedPlaytime = [...allStats].sort((a, b) => b.onlineDurationSeconds - a.onlineDurationSeconds || b.totalEvents - a.totalEvents);
+  const rankPlaytime = sortedPlaytime.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedKills = [...allStats].sort((a, b) => b.killCount - a.killCount || b.totalEvents - a.totalEvents);
+  const rankKills = sortedKills.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedJoins = [...allStats].sort((a, b) => b.totalJoins - a.totalJoins || b.totalEvents - a.totalEvents);
+  const rankJoins = sortedJoins.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedCommands = [...allStats].sort((a, b) => b.totalCommands - a.totalCommands || b.totalEvents - a.totalEvents);
+  const rankCommands = sortedCommands.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedDamage = [...allStats].sort((a, b) => b.damageCount - a.damageCount || b.totalEvents - a.totalEvents);
+  const rankDamage = sortedDamage.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const sortedActivity = [...allStats].sort(
+    (a, b) =>
+      b.totalEvents * 2 +
+      b.totalMessages * 3 +
+      b.onlineDurationSeconds / 60 -
+      (a.totalEvents * 2 + a.totalMessages * 3 + a.onlineDurationSeconds / 60)
+  );
+  const rankActivity = sortedActivity.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase()) + 1;
+
+  const cleanList = [...allStats].filter((p) => p.warningCount === 0 && p.totalEvents > 0).sort((a, b) => b.totalEvents - a.totalEvents);
+  const cleanIdx = cleanList.findIndex((p) => p.player.toLowerCase() === target.player.toLowerCase());
+  const rankClean = cleanIdx >= 0 ? cleanIdx + 1 : null;
+
+  res.json({
+    ok: true,
+    player: target,
+    totalPlayers: allStats.length,
+    rankings: {
+      chat: { rank: rankChat, value: `${target.totalMessages} tin nhắn`, total: allStats.length },
+      deaths: { rank: rankDeaths, value: `${target.totalDeaths} lần chết`, total: allStats.length },
+      playtime: { rank: rankPlaytime, value: `${Math.floor(target.onlineDurationSeconds / 60)} phút`, seconds: target.onlineDurationSeconds, total: allStats.length },
+      kills: { rank: rankKills, value: `${target.killCount} hạ gục`, total: allStats.length },
+      joins: { rank: rankJoins, value: `${target.totalJoins} lượt vào`, total: allStats.length },
+      commands: { rank: rankCommands, value: `${target.totalCommands} lệnh`, total: allStats.length },
+      damage: { rank: rankDamage, value: `${target.damageCount} lần chạm trán`, total: allStats.length },
+      activity: {
+        rank: rankActivity,
+        value: `${Math.floor(target.totalEvents * 2 + target.totalMessages * 3 + target.onlineDurationSeconds / 60)} pts`,
+        total: allStats.length,
+      },
+      clean: {
+        rank: rankClean,
+        value: target.warningCount === 0 ? "0 cảnh cáo (Gương mẫu)" : `${target.warningCount} cảnh cáo`,
+        total: cleanList.length,
+      },
+    },
+  });
+});
+
+app.delete("/admin/leaderboards/reset", checkAuth, requirePermission("RESET_DATA"), (req: Request, res: Response) => {
+  const ip = getClientIp(req);
+  playerStatsMap.clear();
+  persistData();
+  addAuditLog(ip, "LEADERBOARD_RESET", "Đã đặt lại dữ liệu bảng xếp hạng người chơi", "warn");
+  res.json({ ok: true, message: "Đã làm mới bảng xếp hạng người chơi về 0!" });
 });
 
 // Audit Logs API (III.3)
@@ -1135,7 +2072,7 @@ function getGemini(): GoogleGenAI {
   return geminiClient;
 }
 
-app.post("/admin/ai/summarize", checkAuth, rateLimit(10, 60000), async (req: Request, res: Response) => {
+app.post("/admin/ai/summarize", checkAuth, requirePermission("AI_STUDIO"), rateLimit(10, 60000), async (req: Request, res: Response) => {
   const ip = getClientIp(req);
   try {
     const targetKey = cleanKey(req.body.clientKey);
@@ -1194,7 +2131,7 @@ ${JSON.stringify(
   }
 });
 
-app.post("/admin/ai/filter-chat", checkAuth, rateLimit(15, 60000), async (req: Request, res: Response) => {
+app.post("/admin/ai/filter-chat", checkAuth, requirePermission("AI_STUDIO"), rateLimit(15, 60000), async (req: Request, res: Response) => {
   try {
     const text = cleanText(req.body.text || "");
     if (!text) {
@@ -1237,6 +2174,7 @@ app.get("/admin/backup", checkAuth, (req: Request, res: Response) => {
     clientKeys: Array.from(clientKeys.values()),
     queues: Object.fromEntries(queues.entries()),
     events: Object.fromEntries(events.entries()),
+    playerStats: Object.fromEntries(playerStatsMap.entries()),
     auditLogs: auditLogs.slice(-100),
   };
   addAuditLog(ip, "BACKUP_EXPORT", "Xuất file sao lưu hệ thống", "info");
@@ -1244,7 +2182,7 @@ app.get("/admin/backup", checkAuth, (req: Request, res: Response) => {
   res.json(backupData);
 });
 
-app.post("/admin/restore", checkAuth, rateLimit(5, 60000), (req: Request, res: Response) => {
+app.post("/admin/restore", checkAuth, requirePermission("BACKUP_RESTORE"), rateLimit(5, 60000), (req: Request, res: Response) => {
   const ip = getClientIp(req);
   try {
     const data = req.body;
@@ -1272,6 +2210,14 @@ app.post("/admin/restore", checkAuth, rateLimit(5, 60000), (req: Request, res: R
         if (Array.isArray(ev)) events.set(k, ev as RelayEvent[]);
       }
     }
+    if (data.playerStats && typeof data.playerStats === "object") {
+      playerStatsMap.clear();
+      for (const [p, st] of Object.entries(data.playerStats)) {
+        if (st && typeof st === "object") {
+          playerStatsMap.set(p, st as PlayerStats);
+        }
+      }
+    }
 
     persistData();
     addAuditLog(ip, "BACKUP_RESTORE", "Đã khôi phục thành công dữ liệu từ bản sao lưu", "warn");
@@ -1282,7 +2228,7 @@ app.post("/admin/restore", checkAuth, rateLimit(5, 60000), (req: Request, res: R
   }
 });
 
-app.post("/admin/test-discord", checkAuth, rateLimit(10, 60000), async (req: Request, res: Response) => {
+app.post("/admin/test-discord", checkAuth, requirePermission("EDIT_SETTINGS"), rateLimit(10, 60000), async (req: Request, res: Response) => {
   const body = req.body;
   const targetWebhook = cleanText(
     body.webhookUrl || appConfig.discordWebhookUrl || process.env.DISCORD_WEBHOOK_URL || ""
@@ -1324,7 +2270,7 @@ app.post("/admin/test-discord", checkAuth, rateLimit(10, 60000), async (req: Req
   }
 });
 
-app.post("/admin/clear-queue", checkAuth, rateLimit(30, 60000), (req: Request, res: Response) => {
+app.post("/admin/clear-queue", checkAuth, requirePermission("RESET_DATA"), rateLimit(30, 60000), (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const targetKey = cleanKey(req.body.clientKey);
   if (targetKey) {
@@ -1386,6 +2332,27 @@ app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
   if (!clientKey) {
     res.status(400).json({ ok: false, error: "Missing clientKey. Dùng ?clientKey=TEN_KEY" });
     return;
+  }
+
+  // Check if sent by a moderator token
+  const cookies = parseCookies(req.headers.cookie);
+  const authHeader = req.headers.authorization;
+  let token = cookies.admin_token;
+  if (!token && authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.substring(7).trim();
+  }
+  if (!token && req.headers["x-admin-token"]) {
+    token = String(req.headers["x-admin-token"]).trim();
+  }
+  if (token && sessions.has(token)) {
+    const sess = sessions.get(token);
+    if (sess && !hasPermission(sess.role, "SEND_COMMAND")) {
+      res.status(403).json({
+        ok: false,
+        error: `Tài khoản '${sess.username}' (Vai trò: ${sess.role.toUpperCase()}) không có quyền gửi lệnh (SEND_COMMAND) vào máy chủ!`,
+      });
+      return;
+    }
   }
 
   let message = "";
@@ -1453,6 +2420,7 @@ app.post(["/events", "/push"], rateLimit(120, 60000), (req: Request, res: Respon
   list.push(eventItem);
   while (list.length > MAX_EVENTS) list.shift();
   events.set(clientKey, list);
+  trackPlayerEvent(eventItem);
   persistData();
 
   // Broadcast to WS dashboards
@@ -1533,8 +2501,13 @@ app.get("*", (req: Request, res: Response) => {
   res.sendFile(path.join(process.cwd(), "index.html"));
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(
-    `[VnlandZ Minecraft Relay & Discord Bridge] Server running securely with WebSockets on http://0.0.0.0:${PORT}`
-  );
-});
+if (!process.env.VERCEL) {
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(
+      `[VnlandZ Minecraft Relay & Discord Bridge] Server running securely with WebSockets on http://0.0.0.0:${PORT}`
+    );
+  });
+}
+
+export { app, server };
+export default app;

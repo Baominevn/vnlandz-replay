@@ -1,17 +1,19 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "server.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "style.css", "use": "@vercel/static" },
-    { "src": "script.js", "use": "@vercel/static" }
-  ],
-  "routes": [
-    { "src": "/style.css", "dest": "/style.css" },
-    { "src": "/script.js", "dest": "/script.js" },
-    { "src": "/(login|logout|admin/data|admin/settings|admin/test-discord|poll|send|events|push)", "dest": "/server.js" },
-    { "src": "/api/(.*)", "dest": "/server.js" },
-    { "src": "/", "dest": "/index.html" },
-    { "src": "/(.*)", "dest": "/server.js" }
+  "rewrites": [
+    { "source": "/style.css", "destination": "/style.css" },
+    { "source": "/script.js", "destination": "/script.js" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/api/(.*)", "destination": "/api/index.ts" },
+    { "source": "/login", "destination": "/api/index.ts" },
+    { "source": "/logout", "destination": "/api/index.ts" },
+    { "source": "/admin/(.*)", "destination": "/api/index.ts" },
+    { "source": "/poll", "destination": "/api/index.ts" },
+    { "source": "/send", "destination": "/api/index.ts" },
+    { "source": "/events", "destination": "/api/index.ts" },
+    { "source": "/push", "destination": "/api/index.ts" },
+    { "source": "/clear", "destination": "/api/index.ts" },
+    { "source": "/health", "destination": "/api/index.ts" },
+    { "source": "/((?!.*\\..*).*)", "destination": "/index.html" }
   ]
 }

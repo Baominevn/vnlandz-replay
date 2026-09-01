@@ -1526,4 +1526,770 @@ pre {
     transform: translateX(3px);
 }
 
+/* ==========================================
+   10. LEADERBOARDS & PLAYER STATS STYLING
+   ========================================== */
+.lb-category-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px;
+    background: rgba(17, 20, 27, 0.6);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+}
+
+.lb-cat-btn {
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.lb-cat-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.lb-cat-btn.active {
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.2) 0%, rgba(88, 101, 242, 0.3) 100%);
+    border-color: var(--cyan-accent);
+    color: #ffffff;
+    box-shadow: 0 0 16px rgba(0, 242, 254, 0.25);
+}
+
+.lb-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: all 0.25s ease;
+}
+
+.lb-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+    transform: translateY(-2px);
+}
+
+.lb-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.lb-card-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lb-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.lb-player-row:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateX(2px);
+}
+
+.lb-rank-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+}
+
+.lb-rank-1 {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    color: #000000;
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.lb-rank-2 {
+    background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%);
+    color: #000000;
+    box-shadow: 0 0 8px rgba(226, 232, 240, 0.4);
+}
+
+.lb-rank-3 {
+    background: linear-gradient(135deg, #d97706 0%, #78350f 100%);
+    color: #ffffff;
+    box-shadow: 0 0 8px rgba(217, 119, 6, 0.4);
+}
+
+.lb-rank-other {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+}
+
+.lb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    image-rendering: pixelated;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.lb-value-pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Player Global Search Result Card */
+.player-search-card {
+    background: rgba(13, 17, 23, 0.85);
+    border: 1px solid rgba(0, 242, 254, 0.4);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 242, 254, 0.15);
+    animation: fadeIn 0.3s ease;
+}
+
+.player-search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.player-rank-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: all 0.2s ease;
+}
+
+.player-rank-box:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(0, 242, 254, 0.3);
+    transform: translateY(-1px);
+}
+
+.player-rank-box.rank-top10 {
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.05);
+}
+
+.player-rank-box .box-title {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.player-rank-box .box-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.player-rank-box .box-val {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ==========================================
+   9. CORNER AVATAR & STAFF PROFILE BUTTON
+   ========================================== */
+.admin-avatar-corner-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.1) 0%, rgba(79, 70, 229, 0.15) 100%);
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    border-radius: 10px;
+    padding: 4px 10px 4px 6px;
+    color: #ffffff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.admin-avatar-corner-btn:hover {
+    background: linear-gradient(135deg, rgba(0, 242, 254, 0.2) 0%, rgba(79, 70, 229, 0.3) 100%);
+    border-color: var(--cyan-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0, 242, 254, 0.25);
+}
+
+.corner-avatar-head {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    image-rendering: pixelated;
+    background: #000;
+    flex-shrink: 0;
+}
+
+.corner-avatar-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.corner-avatar-name {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #ffffff;
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.corner-role-pill {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 1px 5px;
+    border-radius: 4px;
+    display: inline-block;
+    width: fit-content;
+}
+
+.corner-role-pill.role-admin {
+    background: rgba(0, 242, 254, 0.2);
+    color: #00f2fe;
+    border: 1px solid rgba(0, 242, 254, 0.4);
+}
+
+.corner-role-pill.role-mod {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.corner-avatar-arrow {
+    font-size: 11px;
+    color: var(--text-dim);
+    transition: transform 0.2s ease;
+}
+
+.admin-avatar-corner-btn:hover .corner-avatar-arrow {
+    transform: translateX(2px);
+    color: var(--cyan-accent);
+}
+
+/* ==========================================
+   10. QUICK ACCOUNTS HELPER
+   ========================================== */
+.quick-acc-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.15s ease;
+}
+
+.quick-acc-chip:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.quick-acc-chip.quick-acc-admin:hover {
+    border-color: var(--cyan-accent);
+    background: rgba(0, 242, 254, 0.08);
+}
+
+.quick-acc-chip.quick-acc-mod:hover {
+    border-color: #fbbf24;
+    background: rgba(251, 191, 36, 0.08);
+}
+
+.quick-acc-role {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 1px 4px;
+    border-radius: 3px;
+}
+
+.quick-acc-role.role-admin {
+    background: rgba(0, 242, 254, 0.25);
+    color: #00f2fe;
+}
+
+.quick-acc-role.role-mod {
+    background: rgba(251, 191, 36, 0.25);
+    color: #fbbf24;
+}
+
+.quick-acc-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+/* ==========================================
+   11. MAINTENANCE GLOBAL BANNER
+   ========================================== */
+.maintenance-pill {
+    cursor: pointer;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    transition: all 0.2s ease;
+}
+
+.maintenance-pill.maint-active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #fca5a5;
+    animation: maintGlowPulse 2s infinite;
+}
+
+@keyframes maintGlowPulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 16px rgba(239, 68, 68, 0.7); }
+}
+
+.maintenance-global-banner {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.9) 0%, rgba(185, 28, 28, 0.95) 100%);
+    border-bottom: 2px solid #ff4444;
+    padding: 10px 24px;
+    color: #ffffff;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    animation: bannerSlideDown 0.3s ease;
+}
+
+@keyframes bannerSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.maint-banner-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.maint-banner-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.maint-radar-icon {
+    font-size: 22px;
+    animation: iconBlink 1.2s infinite ease-in-out;
+}
+
+@keyframes iconBlink {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.7; }
+}
+
+.maint-banner-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.maint-countdown-chip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    background: #000000;
+    color: #ffdd00;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 221, 0, 0.4);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.maint-banner-desc {
+    font-size: 12px;
+    opacity: 0.9;
+    margin: 2px 0 0 0;
+}
+
+.maint-banner-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ==========================================
+   12. CYBER COUNTDOWN DIGITAL BOX
+   ========================================== */
+.cyber-countdown-box {
+    background: radial-gradient(circle at center, rgba(15, 23, 42, 0.8) 0%, rgba(2, 6, 23, 0.95) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+.countdown-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+}
+
+.countdown-digital {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: var(--cyan-accent);
+    text-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
+    line-height: 1.2;
+}
+
+.countdown-subtext {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* ==========================================
+   13. STAFF CARDS & RBAC MATRIX
+   ========================================== */
+.staff-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.staff-account-card {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+
+.staff-account-card.admin-card {
+    border-color: rgba(0, 242, 254, 0.25);
+    background: linear-gradient(180deg, rgba(0, 242, 254, 0.04) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.staff-account-card.admin-card:hover {
+    border-color: var(--cyan-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 242, 254, 0.15);
+}
+
+.staff-account-card.mod-card {
+    border-color: rgba(251, 191, 36, 0.25);
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.04) 0%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+.staff-account-card.mod-card:hover {
+    border-color: #fbbf24;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(251, 191, 36, 0.15);
+}
+
+.staff-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.staff-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    image-rendering: pixelated;
+    background: #000;
+}
+
+.staff-meta {
+    flex: 1;
+}
+
+.staff-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.staff-username {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.staff-name {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.staff-pass-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+}
+
+.pass-label {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.pass-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: #60a5fa;
+    flex: 1;
+}
+
+.btn-copy-pass {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.btn-copy-pass:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.staff-desc {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    line-height: 1.4;
+    margin-bottom: 12px;
+    min-height: 32px;
+}
+
+.staff-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.perm-tag {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.perm-tag.admin {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.perm-tag.mod {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.btn-quick-switch {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-quick-switch:hover {
+    background: var(--cyan-accent);
+    color: #000000;
+    border-color: var(--cyan-accent);
+}
+
+.perm-badges-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.perm-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.perm-badge.allowed {
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.2);
+}
+
+.perm-badge.denied {
+    color: #ef4444;
+    opacity: 0.6;
+    border-color: rgba(239, 68, 68, 0.2);
+    text-decoration: line-through;
+}
+
+/* ==========================================
+   14. PUBLIC FULLSCREEN MAINTENANCE OVERLAY
+   ========================================== */
+.maintenance-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 7, 18, 0.95);
+    backdrop-filter: blur(16px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 20px;
+}
+
+.maintenance-box {
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 23, 0.98) 100%);
+    border: 2px solid rgba(239, 68, 68, 0.5);
+    border-radius: 20px;
+    padding: 40px 32px;
+    max-width: 580px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 0 50px rgba(239, 68, 68, 0.3), inset 0 0 30px rgba(0, 0, 0, 0.8);
+    position: relative;
+    overflow: hidden;
+}
+
+.maint-icon-radar {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.maint-icon-symbol {
+    font-size: 36px;
+    z-index: 2;
+}
+
+.maint-radar-ring {
+    position: absolute;
+    border: 2px solid #ef4444;
+    border-radius: 50%;
+    animation: radarRipple 2s infinite ease-out;
+}
+
+.maint-radar-ring.ring-1 { width: 100%; height: 100%; animation-delay: 0s; }
+.maint-radar-ring.ring-2 { width: 100%; height: 100%; animation-delay: 1s; }
+
+@keyframes radarRipple {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(1.6); opacity: 0; }
+}
+
+.cyber-countdown-large {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 24px 16px;
+    margin: 0 auto;
+    max-width: 440px;
+}
+
+.countdown-large-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #ef4444;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.countdown-large-clock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: 6px;
+    color: #ffdd00;
+    text-shadow: 0 0 25px rgba(255, 221, 0, 0.6);
+    line-height: 1.1;
+}
+
+
 

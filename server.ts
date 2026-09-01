@@ -652,7 +652,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://mc-heads.net https://textures.minecraft.net https://crafatar.com https://minotar.net https://raw.githubusercontent.com data: blob:; connect-src 'self' https://cdn.jsdelivr.net https://discord.com https://mc-heads.net https://textures.minecraft.net https://crafatar.com https://minotar.net wss: ws:; frame-ancestors 'self' *;"
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://mc-heads.net https://textures.minecraft.net https://crafatar.com https://minotar.net https://raw.githubusercontent.com data: blob:; media-src 'self' data: blob:; connect-src 'self' https://cdn.jsdelivr.net https://discord.com https://mc-heads.net https://textures.minecraft.net https://crafatar.com https://minotar.net wss: ws:; frame-ancestors 'self' *;"
   );
 
   res.setHeader("Access-Control-Allow-Origin", "*");

@@ -130,14 +130,46 @@ function initTabs() {
 }
 
 // ==========================================
-// 3. Bi-directional WebSocket Engine (I.1)
+// 3. Bi-directional WebSocket & Fallback Polling Engine (I.1)
 // ==========================================
+let wsRetryCount = 0;
+const MAX_WS_RETRIES = 2;
+let fallbackPollingActive = false;
+
 function initWebSocket() {
   const wsBadge = document.getElementById("wsStatusBadge");
   const wsDot = document.getElementById("wsStatusDot");
   const wsText = document.getElementById("wsStatusText");
 
+  function setStatus(text, color, dotColor, glow = true) {
+    if (wsText) wsText.innerText = text;
+    if (wsBadge) {
+      wsBadge.style.color = color;
+      wsBadge.style.borderColor = color.replace(")", ", 0.4)").replace("rgb", "rgba");
+    }
+    if (wsDot) {
+      wsDot.style.background = dotColor || color;
+      wsDot.style.boxShadow = glow ? `0 0 8px ${dotColor || color}` : "none";
+    }
+  }
+
+  function startFallbackSync() {
+    if (fallbackPollingActive) return;
+    fallbackPollingActive = true;
+    setStatus("SYNC: Trực Tuyến (HTTP)", "var(--cyan-accent)", "var(--cyan-accent)");
+    if (!autoRefreshTimer) {
+      startAutoRefresh();
+    }
+  }
+
   function connect() {
+    // If on Vercel Serverless (which does not support persistent WebSockets) or retries exceeded, switch to HTTP sync
+    const isVercel = window.location.hostname.includes("vercel.app");
+    if (isVercel || wsRetryCount >= MAX_WS_RETRIES) {
+      startFallbackSync();
+      return;
+    }
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws/relay?role=dashboard`;
 
@@ -145,13 +177,9 @@ function initWebSocket() {
       socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
-        if (wsBadge && wsText && wsDot) {
-          wsText.innerText = "WS: Trực Tiếp";
-          wsBadge.style.color = "var(--mc-green)";
-          wsBadge.style.borderColor = "rgba(34, 197, 94, 0.4)";
-          wsDot.style.background = "var(--mc-green)";
-          wsDot.style.boxShadow = "0 0 8px var(--mc-green)";
-        }
+        wsRetryCount = 0;
+        fallbackPollingActive = false;
+        setStatus("WS: Trực Tiếp", "var(--mc-green)", "var(--mc-green)");
       };
 
       socket.onmessage = (event) => {
@@ -164,21 +192,22 @@ function initWebSocket() {
       };
 
       socket.onclose = () => {
-        if (wsBadge && wsText && wsDot) {
-          wsText.innerText = "WS: Mất kết nối (Đang thử lại...)";
-          wsBadge.style.color = "var(--amber-warning)";
-          wsBadge.style.borderColor = "rgba(245, 158, 11, 0.4)";
-          wsDot.style.background = "var(--amber-warning)";
-          wsDot.style.boxShadow = "none";
+        wsRetryCount++;
+        if (wsRetryCount >= MAX_WS_RETRIES || isVercel) {
+          startFallbackSync();
+        } else {
+          setStatus("WS: Mất kết nối", "var(--amber-warning)", "var(--amber-warning)", false);
+          setTimeout(connect, 5000);
         }
-        setTimeout(connect, 3000);
       };
 
       socket.onerror = () => {
-        socket.close();
+        try {
+          socket.close();
+        } catch (e) {}
       };
     } catch (e) {
-      console.warn("WebSocket init error:", e);
+      startFallbackSync();
     }
   }
 
@@ -269,8 +298,13 @@ function initAuthFlow() {
     });
   }
 
-  // Check existing login
-  loadDashboardData(false);
+  // Check existing login: Only fetch admin data if token is present
+  const existingToken = localStorage.getItem("admin_token");
+  if (existingToken) {
+    loadDashboardData(false);
+  } else {
+    showLogin();
+  }
 }
 
 function showDashboard() {
@@ -291,6 +325,11 @@ function showLogin() {
 // ==========================================
 async function loadDashboardData(showFeedback = false) {
   const token = localStorage.getItem("admin_token") || "";
+  if (!token) {
+    showLogin();
+    return;
+  }
+
   try {
     const res = await fetch("/admin/data", {
       headers: {
@@ -300,6 +339,7 @@ async function loadDashboardData(showFeedback = false) {
     });
 
     if (res.status === 401) {
+      localStorage.removeItem("admin_token");
       showLogin();
       return;
     }

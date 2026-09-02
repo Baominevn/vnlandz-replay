@@ -317,7 +317,17 @@ function initAuthFlow() {
         try {
           data = JSON.parse(text);
         } catch {
-          data = { ok: false, error: text || `Máy chủ phản hồi mã lỗi HTTP ${res.status}` };
+          // If HTML error page returned (e.g. 404 or 500), extract readable text or provide clear message
+          let cleanErrMsg = "";
+          if (text.includes("<pre>")) {
+            const match = text.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+            cleanErrMsg = match ? match[1].replace(/<[^>]+>/g, "").trim() : "";
+          }
+          if (!cleanErrMsg && text.includes("<title>")) {
+            const match = text.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+            cleanErrMsg = match ? match[1].replace(/<[^>]+>/g, "").trim() : "";
+          }
+          data = { ok: false, error: cleanErrMsg || `Máy chủ phản hồi lỗi (HTTP ${res.status})` };
         }
 
         if (res.ok && data.ok) {

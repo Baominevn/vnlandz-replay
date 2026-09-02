@@ -559,6 +559,18 @@ function loadPersistedData() {
   } catch (err) {
     console.error("[Persistence] Error loading data/store.json:", err);
   }
+
+  // Pre-seed user's actual Minecraft Client Key if not present
+  if (!clientKeys.has("Vz9Qm4Tn7Lp2KxA")) {
+    clientKeys.set("Vz9Qm4Tn7Lp2KxA", {
+      key: "Vz9Qm4Tn7Lp2KxA",
+      label: "Minecraft Replay Mod (Vz9Qm4Tn7Lp2KxA)",
+      createdAt: Date.now(),
+      lastSeen: Date.now(),
+      status: "active",
+      notes: "Client Key kết nối trực tiếp với Mod Minecraft / Replay",
+    });
+  }
 }
 
 let saveDebounceTimer: NodeJS.Timeout | null = null;
@@ -635,9 +647,40 @@ setInterval(() => {
 const app = express();
 const server = http.createServer(app);
 
-// Global request counter
+// Global URL normalization (Vercel Serverless / Proxy rewrites support)
 app.use((req: Request, res: Response, next: NextFunction) => {
   requestCounters.totalHttp++;
+
+  const headers = req.headers || {};
+  const matchedPath =
+    (headers["x-matched-path"] as string) ||
+    (headers["x-vercel-matched-path"] as string) ||
+    (headers["x-forwarded-uri"] as string) ||
+    (headers["x-real-url"] as string) ||
+    (headers["x-original-url"] as string);
+
+  const initialUrl = req.url;
+
+  if (matchedPath && typeof matchedPath === "string" && (req.url === "/api/index.ts" || req.url.startsWith("/api/index.ts") || req.url === "/api/index" || req.url.startsWith("/api/index"))) {
+    const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
+    req.url = matchedPath.includes("?") ? matchedPath : matchedPath + query;
+  } else if (req.url) {
+    if (req.url.startsWith("/api/index.ts")) {
+      const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
+      const pathOnly = req.url.split("?")[0].replace(/^\/api\/index\.ts/, "") || "/";
+      req.url = pathOnly + query;
+    } else if (req.url.startsWith("/api/index")) {
+      const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
+      const pathOnly = req.url.split("?")[0].replace(/^\/api\/index/, "") || "/";
+      req.url = pathOnly + query;
+    }
+  }
+
+  if (req.url !== initialUrl) {
+    (req as any)._parsedUrl = undefined;
+    (req as any)._parsedOriginalUrl = undefined;
+  }
+
   next();
 });
 
@@ -989,7 +1032,7 @@ function rateLimit(maxRequests: number, windowMs: number) {
 // 4. Authentication & Anti-Brute Force Protection
 // ==========================================
 
-app.post("/login", (req: Request, res: Response) => {
+app.post(["/login", "/api/login", "/api/auth/login"], (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const now = Date.now();
 
@@ -2486,7 +2529,7 @@ app.get(["/api/health", "/health"], (req: Request, res: Response) => {
   });
 });
 
-app.get("/poll", rateLimit(180, 60000), (req: Request, res: Response) => {
+app.all(["/poll", "/api/poll", "/command/poll"], rateLimit(180, 60000), (req: Request, res: Response) => {
   requestCounters.polls++;
   const clientKey = extractClientKey(req);
   if (!clientKey) {
@@ -2500,11 +2543,18 @@ app.get("/poll", rateLimit(180, 60000), (req: Request, res: Response) => {
   queues.set(clientKey, queue);
   persistData();
 
+  // If mod expects plain text or JSON
+  if (req.headers.accept === "text/plain" || req.query.format === "text") {
+    res.send(next);
+    return;
+  }
+
   res.json({
     ok: true,
     clientKey,
     command: next,
     message: next,
+    cmd: next,
     pending: queue.length,
   });
 });
@@ -2577,7 +2627,7 @@ app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
   });
 });
 
-app.post(["/events", "/push"], rateLimit(120, 60000), (req: Request, res: Response) => {
+app.post(["/events", "/push", "/webhook", "/api/events", "/api/push", "/api/webhook"], rateLimit(120, 60000), (req: Request, res: Response) => {
   requestCounters.events++;
   const clientKey = extractClientKey(req);
   if (!clientKey) {
@@ -2589,15 +2639,47 @@ app.post(["/events", "/push"], rateLimit(120, 60000), (req: Request, res: Respon
   const body = req.body || {};
   const list = events.get(clientKey) || [];
 
+  // Extract from Discord Webhook standard format if sent by Webhook mods
+  let player = cleanText(body.player || body.username || req.headers["x-vnlandz-player"] || "Minecraft_Player");
+  let message = cleanText(body.message || body.text || body.content || "");
+  let title = cleanText(body.title || "Minecraft Event");
+  let eventType = cleanText(body.type || "").toUpperCase();
+
+  // If mod sends Discord Embeds: { embeds: [{ title, description, author, fields, ... }] }
+  if (Array.isArray(body.embeds) && body.embeds.length > 0) {
+    const embed = body.embeds[0] || {};
+    if (embed.title && !body.title) title = cleanText(embed.title);
+    if (embed.description && !message) message = cleanText(embed.description);
+    if (embed.author?.name && player === "Minecraft_Player") player = cleanText(embed.author.name);
+  }
+
+  // Infer event type if not explicitly set
+  if (!eventType || eventType === "LOG") {
+    const lowerMsg = (message + " " + title).toLowerCase();
+    if (lowerMsg.includes("died") || lowerMsg.includes("slain") || lowerMsg.includes("killed") || lowerMsg.includes("chết") || lowerMsg.includes("bị giết") || lowerMsg.includes("fell") || lowerMsg.includes("drowned") || lowerMsg.includes("burned")) {
+      eventType = "DEATH";
+    } else if (lowerMsg.includes("joined") || lowerMsg.includes("tham gia") || lowerMsg.includes("vào server") || lowerMsg.includes("connect")) {
+      eventType = "JOIN";
+    } else if (lowerMsg.includes("left") || lowerMsg.includes("rời server") || lowerMsg.includes("thoát") || lowerMsg.includes("disconnect") || lowerMsg.includes("quit")) {
+      eventType = "LEAVE";
+    } else if (lowerMsg.includes("executed command") || message.startsWith("/")) {
+      eventType = "COMMAND";
+    } else if (message) {
+      eventType = "CHAT";
+    } else {
+      eventType = "LOG";
+    }
+  }
+
   const eventItem: RelayEvent = {
     time: new Date().toISOString(),
     client: cleanText(body.client || "Minecraft_Client"),
     version: cleanText(body.version || "1.0"),
-    type: cleanText(body.type || "LOG").toUpperCase(),
-    title: cleanText(body.title || "Minecraft Event"),
-    player: cleanText(body.player || req.headers["x-vnlandz-player"] || "Unknown_Player"),
+    type: eventType,
+    title: title || `${eventType} Event`,
+    player: player,
     server: cleanText(body.server || req.headers["x-vnlandz-server"] || "Minecraft Server"),
-    message: cleanText(body.message || body.text || body.content || ""),
+    message: message || title || "Sự kiện từ Minecraft",
   };
 
   list.push(eventItem);

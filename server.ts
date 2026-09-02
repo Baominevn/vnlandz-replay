@@ -82,6 +82,7 @@ export interface AppConfig {
   forwardDeaths: boolean;
   forwardCommands: boolean;
   embedConfig: EmbedConfig;
+  discordToMcFormat?: "client_chat" | "tellraw" | "say";
 }
 
 export interface RelayEvent {
@@ -93,6 +94,7 @@ export interface RelayEvent {
   player: string;
   server: string;
   message: string;
+  ip?: string;
 }
 
 export interface ClientKeyMetadata {
@@ -102,6 +104,12 @@ export interface ClientKeyMetadata {
   lastSeen: number;
   status: "active" | "disabled" | "readonly";
   notes?: string;
+  lastIp?: string;
+  recentIps?: string[];
+  activePlayers?: string[];
+  lastPlayer?: string;
+  totalEvents?: number;
+  totalPolls?: number;
 }
 
 export interface AuditLogItem {
@@ -798,19 +806,44 @@ function timingSafeCompare(a: string, b: string): boolean {
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
-function touchClientKey(key: string) {
+function touchClientKey(key: string, ip?: string, player?: string, action?: "event" | "poll") {
   if (!key) return;
-  const existing = clientKeys.get(key);
-  if (existing) {
-    existing.lastSeen = Date.now();
-  } else {
-    clientKeys.set(key, {
+  let existing = clientKeys.get(key);
+  if (!existing) {
+    existing = {
       key,
       label: key,
       createdAt: Date.now(),
       lastSeen: Date.now(),
       status: "active",
-    });
+      lastIp: ip || "",
+      recentIps: ip ? [ip] : [],
+      activePlayers: player && player !== "Unknown_Player" && player !== "Minecraft_Player" ? [player] : [],
+      lastPlayer: player || "",
+      totalEvents: action === "event" ? 1 : 0,
+      totalPolls: action === "poll" ? 1 : 0,
+    };
+    clientKeys.set(key, existing);
+  } else {
+    existing.lastSeen = Date.now();
+    if (ip) {
+      existing.lastIp = ip;
+      if (!existing.recentIps) existing.recentIps = [];
+      if (!existing.recentIps.includes(ip)) {
+        existing.recentIps.unshift(ip);
+        if (existing.recentIps.length > 5) existing.recentIps.pop();
+      }
+    }
+    if (player && player !== "Unknown_Player" && player !== "Minecraft_Player" && player !== "Client" && player !== "Minecraft Client") {
+      existing.lastPlayer = player;
+      if (!existing.activePlayers) existing.activePlayers = [];
+      if (!existing.activePlayers.includes(player)) {
+        existing.activePlayers.unshift(player);
+        if (existing.activePlayers.length > 10) existing.activePlayers.pop();
+      }
+    }
+    if (action === "event") existing.totalEvents = (existing.totalEvents || 0) + 1;
+    if (action === "poll") existing.totalPolls = (existing.totalPolls || 0) + 1;
   }
   persistData();
 }
@@ -2071,25 +2104,34 @@ app.get("/admin/audit-logs", checkAuth, rateLimit(60, 60000), (req: Request, res
 // Discord to Minecraft API (II.1)
 app.post("/api/discord-to-mc", rateLimit(60, 60000), (req: Request, res: Response) => {
   const ip = getClientIp(req);
-  const { clientKey, author, content, channel } = req.body;
+  const { clientKey, author, content, channel, format } = req.body;
   const targetKey = cleanKey(clientKey || "vnlandz_main");
   const authorName = cleanText(author || "DiscordUser");
   const messageText = cleanText(content || "");
   const channelName = cleanText(channel || "general");
+  const msgFormat = format || appConfig.discordToMcFormat || "client_chat";
 
   if (!messageText) {
     res.status(400).json({ ok: false, error: "Nội dung tin nhắn không được trống" });
     return;
   }
 
-  // Format Minecraft command
-  const formattedCmd = `/tellraw @a [{"text":"[Discord #${channelName}] ","color":"blue"},{"text":"${authorName}: ","color":"aqua","bold":true},{"text":"${messageText}","color":"white"}]`;
+  // Format message depending on mode (Client chat vs Server OP tellraw vs say)
+  let formattedCmd = "";
+  if (msgFormat === "tellraw") {
+    formattedCmd = `/tellraw @a [{"text":"[Discord #${channelName}] ","color":"blue"},{"text":"${authorName}: ","color":"aqua","bold":true},{"text":"${messageText}","color":"white"}]`;
+  } else if (msgFormat === "say") {
+    formattedCmd = `/say [Discord #${channelName}] ${authorName}: ${messageText}`;
+  } else {
+    // Default: Client-side friendly chat (No OP permission required!)
+    formattedCmd = `[Discord #${channelName}] ${authorName}: ${messageText}`;
+  }
 
   pushMessage(targetKey, formattedCmd);
 
   // Log in events
   const list = events.get(targetKey) || [];
-  list.push({
+  const inboundEvent: RelayEvent = {
     time: new Date().toISOString(),
     client: "Discord_Bridge_Inbound",
     version: "2.0",
@@ -2097,22 +2139,32 @@ app.post("/api/discord-to-mc", rateLimit(60, 60000), (req: Request, res: Respons
     title: `Discord Inbound (#${channelName})`,
     player: authorName,
     server: "Discord Bridge",
-    message: messageText,
-  });
+    message: `[Discord #${channelName}] ${messageText}`,
+    ip,
+  };
+  list.push(inboundEvent);
   while (list.length > MAX_EVENTS) list.shift();
   events.set(targetKey, list);
+
+  // Broadcast to WS
+  broadcastToWs({
+    type: "EVENT_RECEIVED",
+    clientKey: targetKey,
+    event: inboundEvent,
+  });
 
   persistData();
   addAuditLog(
     ip,
     "DISCORD_TO_MC",
-    `Tin nhắn từ Discord (${authorName} -> Key: ${targetKey}): ${messageText}`,
+    `Tin nhắn từ Discord (${authorName} -> Key: ${targetKey}, Mode: ${msgFormat}): ${messageText}`,
     "info"
   );
 
   res.json({
     ok: true,
     message: "Đã chuyển tiếp tin nhắn Discord vào Minecraft thành công!",
+    format: msgFormat,
     queuedCommand: formattedCmd,
   });
 });
@@ -2539,13 +2591,14 @@ app.get(["/api/health", "/health"], (req: Request, res: Response) => {
 
 app.all(["/poll", "/api/poll", "/command/poll"], rateLimit(180, 60000), (req: Request, res: Response) => {
   requestCounters.polls++;
+  const ip = getClientIp(req);
   const clientKey = extractClientKey(req);
   if (!clientKey) {
     res.status(400).json({ ok: false, error: "Missing clientKey" });
     return;
   }
 
-  touchClientKey(clientKey);
+  touchClientKey(clientKey, ip, undefined, "poll");
   const queue = queues.get(clientKey) || [];
   const next = queue.shift() || "";
   queues.set(clientKey, queue);
@@ -2553,6 +2606,10 @@ app.all(["/poll", "/api/poll", "/command/poll"], rateLimit(180, 60000), (req: Re
 
   // If mod expects plain text or JSON
   if (req.headers.accept === "text/plain" || req.query.format === "text") {
+    if (!next) {
+      res.status(204).end();
+      return;
+    }
     res.send(next);
     return;
   }
@@ -2569,6 +2626,7 @@ app.all(["/poll", "/api/poll", "/command/poll"], rateLimit(180, 60000), (req: Re
 
 app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
   requestCounters.sends++;
+  const ip = getClientIp(req);
   const clientKey = extractClientKey(req);
   if (!clientKey) {
     res.status(400).json({ ok: false, error: "Missing clientKey. Dùng ?clientKey=TEN_KEY" });
@@ -2612,7 +2670,7 @@ app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
   const queue = pushMessage(clientKey, normalized);
 
   const list = events.get(clientKey) || [];
-  list.push({
+  const cmdEvent: RelayEvent = {
     time: new Date().toISOString(),
     client: "Relay_Dashboard_Bridge",
     version: "2.5",
@@ -2621,10 +2679,18 @@ app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
     player: "Admin / Discord Bridge",
     server: "Relay Server",
     message: `Lệnh đã được đưa vào hàng đợi: ${normalized}`,
-  });
+    ip,
+  };
+  list.push(cmdEvent);
   while (list.length > MAX_EVENTS) list.shift();
   events.set(clientKey, list);
   persistData();
+
+  broadcastToWs({
+    type: "EVENT_RECEIVED",
+    clientKey,
+    event: cmdEvent,
+  });
 
   res.json({
     ok: true,
@@ -2637,13 +2703,13 @@ app.all("/send", rateLimit(60, 60000), (req: Request, res: Response) => {
 
 app.post(["/events", "/push", "/webhook", "/api/events", "/api/push", "/api/webhook"], rateLimit(120, 60000), (req: Request, res: Response) => {
   requestCounters.events++;
+  const ip = getClientIp(req);
   const clientKey = extractClientKey(req);
   if (!clientKey) {
     res.status(400).json({ ok: false, error: "Missing clientKey header hoặc query param" });
     return;
   }
 
-  touchClientKey(clientKey);
   const body = req.body || {};
   const list = events.get(clientKey) || [];
 
@@ -2679,6 +2745,8 @@ app.post(["/events", "/push", "/webhook", "/api/events", "/api/push", "/api/webh
     }
   }
 
+  touchClientKey(clientKey, ip, player, "event");
+
   const eventItem: RelayEvent = {
     time: new Date().toISOString(),
     client: cleanText(body.client || "Minecraft_Client"),
@@ -2688,6 +2756,7 @@ app.post(["/events", "/push", "/webhook", "/api/events", "/api/push", "/api/webh
     player: player,
     server: cleanText(body.server || req.headers["x-vnlandz-server"] || "Minecraft Server"),
     message: message || title || "Sự kiện từ Minecraft",
+    ip,
   };
 
   list.push(eventItem);
@@ -2731,6 +2800,13 @@ app.post(["/events", "/push", "/webhook", "/api/events", "/api/push", "/api/webh
         discordStats.lastError = err.message;
       });
     discordResult = { forwarded: true, target: "Discord Webhook" };
+  }
+
+  // If mod is acting as Discord Webhook client without ?wait=true, return 204 No Content (standard Discord Webhook behavior)
+  // This completely stops Minecraft mod from printing any response spam in player chat!
+  if (req.query?.wait !== "true" && req.query?.format !== "json" && !req.headers.accept?.includes("application/json")) {
+    res.status(204).end();
+    return;
   }
 
   res.json({
@@ -2785,6 +2861,12 @@ app.get("/script.js", (req: Request, res: Response) => {
 });
 
 app.get("*", (req: Request, res: Response) => {
+  const p = req.path || "";
+  // Do NOT return HTML for API/poll/webhook endpoints
+  if (p.startsWith("/api/") || p === "/poll" || p === "/events" || p === "/webhook" || p === "/send" || p === "/push" || p === "/health" || p === "/clear") {
+    return res.status(404).json({ ok: false, error: "Endpoint not found" });
+  }
+
   const distIndex = path.join(process.cwd(), "dist", "index.html");
   if (fs.existsSync(distIndex)) {
     return res.sendFile(distIndex);

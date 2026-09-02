@@ -630,10 +630,18 @@
                 </div>
               </div>
               <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-                Nhận tin nhắn từ Discord bot hoặc webhook và đẩy trực tiếp vào game Minecraft dạng `/tellraw`.
+                Nhận tin nhắn từ Discord bot hoặc webhook và đẩy trực tiếp vào game Minecraft. Hỗ trợ chế độ Client Chat không cần quyền OP.
               </p>
 
               <form id="discordToMcForm">
+                <div class="input-group">
+                  <label class="input-label" for="d2mcFormat">ĐỊNH DẠNG TIN NHẮN VÀO MINECRAFT</label>
+                  <select id="d2mcFormat" style="width: 100%; padding: 9px 12px; background: rgba(0,0,0,0.6); border: 1px solid var(--border-color); color: #fff; border-radius: 6px; font-size: 13px;">
+                    <option value="client_chat" selected>💬 Client Chat (Không cần quyền OP - Phù hợp cho Client Mod)</option>
+                    <option value="tellraw">🎨 Server OP /tellraw (Đầy đủ màu sắc JSON - Cần quyền OP)</option>
+                    <option value="say">📢 Server OP /say (Phát thanh toàn server - Cần quyền OP)</option>
+                  </select>
+                </div>
                 <div class="input-group">
                   <label class="input-label" for="d2mcAuthor">TÊN USER DISCORD</label>
                   <input type="text" id="d2mcAuthor" value="Admin_Discord" required />

@@ -624,20 +624,60 @@ function renderClientsAndEvents(clientsData) {
     const hasMatch = key.toLowerCase().includes(searchTerm) || events.length > 0;
     if (searchTerm && !hasMatch && eventType === "ALL") return;
 
+    // Retrieve metadata for this client key
+    const keyMeta = globalDataCache?.clientKeysList?.find((k) => k.key === key);
+    const lastIp = keyMeta?.lastIp || (events.find((e) => e.ip)?.ip) || "";
+    const activePlayers = keyMeta?.activePlayers && keyMeta.activePlayers.length > 0
+      ? keyMeta.activePlayers
+      : (Array.from(new Set(events.map((e) => e.player).filter((p) => p && p !== "Unknown_Player" && p !== "Minecraft_Player" && p !== "Admin / Discord Bridge" && p !== "Client"))));
+
+    const ipBadge = lastIp
+      ? `<span class="client-meta-badge" style="background: rgba(96, 165, 250, 0.15); color: #93c5fd; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 10.5px;">🌐 IP: ${escapeHtml(lastIp)}</span>`
+      : `<span class="client-meta-badge" style="color: var(--text-dim); font-size: 10.5px;">🌐 IP: Chưa kết nối</span>`;
+
+    const playerBadges = activePlayers.length > 0
+      ? activePlayers
+          .map(
+            (p) =>
+              `<span class="client-player-badge" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-size: 10.5px;">
+                <img src="https://mc-heads.net/avatar/${encodeURIComponent(p)}/16" alt="" style="width: 13px; height: 13px; border-radius: 2px;" />
+                ${escapeHtml(p)}
+              </span>`
+          )
+          .join(" ")
+      : `<span style="color: var(--text-dim); font-size: 10.5px;">👤 Chưa ghi nhận player</span>`;
+
+    const totalEventsCount = keyMeta?.totalEvents ?? events.length;
+    const totalPollsCount = keyMeta?.totalPolls ?? 0;
+
     html += `
       <div class="client-card">
-        <div class="client-header">
-          <div class="client-title">
-            <span class="client-key-badge">${escapeHtml(key)}</span>
-            <span class="status-micro-tag" style="background: rgba(34, 197, 94, 0.15); color: #4ade80;">ACTIVE</span>
+        <div class="client-header" style="flex-direction: column; align-items: stretch; gap: 8px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div class="client-title" style="display: flex; align-items: center; gap: 8px;">
+              <span class="client-key-badge">${escapeHtml(key)}</span>
+              <span class="status-micro-tag" style="background: rgba(34, 197, 94, 0.15); color: #4ade80;">ACTIVE</span>
+              <span style="font-size: 10.5px; color: var(--text-dim);">⚡ ${totalEventsCount} sự kiện • 📥 ${totalPollsCount} polls</span>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button class="btn btn-sm btn-outline btn-send-to-key" data-key="${escapeHtml(key)}" title="Chọn Key này để gửi lệnh">
+                <span>✍️ Chọn Gửi Lệnh</span>
+              </button>
+              <button class="btn btn-sm btn-danger-outline btn-clear-q" data-key="${escapeHtml(key)}" title="Làm sạch hàng đợi">
+                <span>🗑️ Clear Queue</span>
+              </button>
+            </div>
           </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="btn btn-sm btn-outline btn-send-to-key" data-key="${escapeHtml(key)}" title="Chọn Key này để gửi lệnh">
-              <span>✍️ Chọn Gửi Lệnh</span>
-            </button>
-            <button class="btn btn-sm btn-danger-outline btn-clear-q" data-key="${escapeHtml(key)}" title="Làm sạch hàng đợi">
-              <span>🗑️ Clear Queue</span>
-            </button>
+          
+          <!-- Real-time Connected Player & IP Identifiers -->
+          <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 10px; background: rgba(0, 0, 0, 0.25); border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="font-size: 10.5px; color: var(--text-dim); text-transform: uppercase; font-weight: 700;">Người chơi:</span>
+              ${playerBadges}
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-left: auto;">
+              ${ipBadge}
+            </div>
           </div>
         </div>
 
@@ -1396,6 +1436,7 @@ function initDiscordEmbedBuilder() {
       const author = document.getElementById("d2mcAuthor")?.value.trim();
       const channel = document.getElementById("d2mcChannel")?.value.trim();
       const content = document.getElementById("d2mcContent")?.value.trim();
+      const format = document.getElementById("d2mcFormat")?.value || "client_chat";
       const feedback = document.getElementById("d2mcFeedback");
 
       try {
@@ -1407,6 +1448,7 @@ function initDiscordEmbedBuilder() {
             author,
             channel,
             content,
+            format,
           }),
         });
 
@@ -1624,37 +1666,60 @@ function renderKeyCards(keys) {
 
   container.innerHTML = keys
     .map(
-      (k) => `
-      <div class="key-card">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <strong style="color: #60a5fa; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${escapeHtml(
-              k.key
-            )}</strong>
-            <span class="status-micro-tag" style="${
-              k.status === "active"
-                ? "background: rgba(34, 197, 94, 0.2); color: #4ade80;"
-                : "background: rgba(239, 68, 68, 0.2); color: #f87171;"
-            }">${k.status.toUpperCase()}</span>
-          </div>
-          <div style="font-size: 12px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">${escapeHtml(
-            k.label
-          )}</div>
-          <div style="font-size: 11px; color: var(--text-dim);">${escapeHtml(k.notes || "Không có ghi chú")}</div>
-          <div style="font-size: 10px; color: var(--text-dim); margin-top: 8px;">Hoạt động gần nhất: ${new Date(
-            k.lastSeen || k.createdAt
-          ).toLocaleTimeString()}</div>
-        </div>
+      (k) => {
+        const playerHtml = k.activePlayers && k.activePlayers.length > 0
+          ? k.activePlayers.map(p => `<span style="display: inline-flex; align-items: center; gap: 4px; background: rgba(34, 197, 94, 0.15); color: #4ade80; padding: 2px 6px; border-radius: 4px; font-size: 11px;"><img src="https://mc-heads.net/avatar/${encodeURIComponent(p)}/16" alt="" style="width: 13px; height: 13px; border-radius: 2px;" /> ${escapeHtml(p)}</span>`).join(" ")
+          : `<span style="color: var(--text-dim); font-size: 11px;">${escapeHtml(k.lastPlayer || "Chưa có")}</span>`;
 
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <button class="btn btn-sm btn-outline btn-copy-key" data-key="${escapeHtml(
-            k.key
-          )}" style="flex: 1;">📋 Sao Chép</button>
-          <button class="btn btn-sm btn-danger-outline btn-del-key" data-key="${escapeHtml(
-            k.key
-          )}">🗑️ Xóa</button>
-        </div>
-      </div>`
+        const ipHtml = k.lastIp
+          ? `<span style="font-family: monospace; color: #93c5fd; background: rgba(96, 165, 250, 0.15); padding: 2px 6px; border-radius: 4px; font-size: 11px;">🌐 ${escapeHtml(k.lastIp)}</span>`
+          : `<span style="color: var(--text-dim); font-size: 11px;">Chưa kết nối</span>`;
+
+        return `
+        <div class="key-card">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <strong style="color: #60a5fa; font-family: 'JetBrains Mono', monospace; font-size: 13px;">${escapeHtml(
+                k.key
+              )}</strong>
+              <span class="status-micro-tag" style="${
+                k.status === "active"
+                  ? "background: rgba(34, 197, 94, 0.2); color: #4ade80;"
+                  : "background: rgba(239, 68, 68, 0.2); color: #f87171;"
+              }">${k.status.toUpperCase()}</span>
+            </div>
+            <div style="font-size: 12.5px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">${escapeHtml(
+              k.label
+            )}</div>
+            <div style="font-size: 11px; color: var(--text-dim); margin-bottom: 8px;">${escapeHtml(k.notes || "Không có ghi chú")}</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: rgba(0, 0, 0, 0.3); border-radius: 6px; margin-bottom: 8px; border: 1px solid rgba(255, 255, 255, 0.05);">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                <span style="font-size: 10.5px; color: var(--text-dim);">IP Client:</span>
+                ${ipHtml}
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; flex-wrap: wrap;">
+                <span style="font-size: 10.5px; color: var(--text-dim);">Người chơi:</span>
+                <div style="display: flex; gap: 4px; flex-wrap: wrap;">${playerHtml}</div>
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 10.5px; color: var(--text-dim); margin-top: 6px;">
+              <span>⚡ ${k.totalEvents || 0} Events • 📥 ${k.totalPolls || 0} Polls</span>
+              <span>${new Date(k.lastSeen || k.createdAt).toLocaleTimeString()}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="btn btn-sm btn-outline btn-copy-key" data-key="${escapeHtml(
+              k.key
+            )}" style="flex: 1;">📋 Sao Chép</button>
+            <button class="btn btn-sm btn-danger-outline btn-del-key" data-key="${escapeHtml(
+              k.key
+            )}">🗑️ Xóa</button>
+          </div>
+        </div>`;
+      }
     )
     .join("");
 

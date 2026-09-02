@@ -44,6 +44,64 @@ const graphHistory = {
 };
 let lastTelemetryCounters = { http: 0, events: 0, ws: 0 };
 
+// ==========================================
+// Global Toast Notification Engine
+// ==========================================
+function getToastContainer() {
+  let container = document.getElementById("globalToastContainer");
+  if (!container) {
+    container = document.createElement("div");
+    container.id = "globalToastContainer";
+    container.className = "toast-container";
+    document.body.appendChild(container);
+  }
+  return container;
+}
+
+function showToast(message, isError = false, duration = 3500) {
+  try {
+    const container = getToastContainer();
+    const toast = document.createElement("div");
+    toast.className = `toast-item ${isError ? "toast-error" : "toast-success"}`;
+
+    const icon = isError ? "⚠️" : "✅";
+    toast.innerHTML = `
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-msg">${escapeHtml(String(message || ""))}</div>
+      <button type="button" class="toast-close" title="Đóng">✕</button>
+      <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+    `;
+
+    const closeBtn = toast.querySelector(".toast-close");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => dismissToast(toast));
+    }
+
+    container.appendChild(toast);
+
+    // Auto dismiss timer
+    const timer = setTimeout(() => {
+      dismissToast(toast);
+    }, duration);
+
+    toast._dismissTimer = timer;
+  } catch (e) {
+    console.error("Failed to show toast:", e, message);
+  }
+}
+
+function dismissToast(toast) {
+  if (!toast || toast._isDismissing) return;
+  toast._isDismissing = true;
+  if (toast._dismissTimer) clearTimeout(toast._dismissTimer);
+  toast.classList.add("toast-hiding");
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.parentNode.removeChild(toast);
+    }
+  }, 300);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   initAuthFlow();
@@ -61,6 +119,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initSmartFilters();
   initWebSocket();
   initStaffAndMaintenance();
+  initClientSecurityProtection();
 });
 
 // ==========================================
@@ -1671,35 +1730,278 @@ function renderAuditLogs(logs) {
 }
 
 // ==========================================
-// 12. Gemini AI Studio Integration (V.5)
+// 12. Multi-Provider AI Studio Integration (V.5 Smart)
 // ==========================================
+const AI_PROVIDERS = {
+  gemini: {
+    name: "Google Gemini",
+    badgeColor: "rgba(0, 242, 254, 0.15)",
+    textColor: "#00f2fe",
+    borderColor: "rgba(0, 242, 254, 0.4)",
+    keyDocUrl: "https://aistudio.google.com/app/apikey",
+    keyDocName: "Lấy Key Gemini Studio ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (Auto: Gemini 2.5 Flash - Nhanh & Chuẩn xác)", badge: "Khuyên dùng" },
+      { id: "gemini-2.5-flash", name: "⚡ Gemini 2.5 Flash (Tốc độ cao, tối ưu phân tích)", badge: "Nhanh" },
+      { id: "gemini-2.5-pro", name: "🧠 Gemini 2.5 Pro (Suy luận sâu & Báo cáo nâng cao)", badge: "Chuyên sâu" },
+      { id: "gemini-3.7-flash", name: "🚀 Gemini 3.7 Flash (Mô hình thế hệ mới nhất)", badge: "Mới" },
+      { id: "gemini-2.0-flash", name: "⚡ Gemini 2.0 Flash", badge: "Ổn định" },
+    ],
+  },
+  openai: {
+    name: "OpenAI (ChatGPT)",
+    badgeColor: "rgba(16, 163, 127, 0.15)",
+    textColor: "#10a37f",
+    borderColor: "rgba(16, 163, 127, 0.4)",
+    keyDocUrl: "https://platform.openai.com/api-keys",
+    keyDocName: "Lấy Key OpenAI ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (GPT-4o Mini - Nhanh & Tiết kiệm)", badge: "Khuyên dùng" },
+      { id: "gpt-4o-mini", name: "⚡ GPT-4o Mini (Phản hồi tức thì, tối ưu chi phí)", badge: "Nhanh" },
+      { id: "gpt-4o", name: "🧠 GPT-4o (Mô hình đa năng hàng đầu OpenAI)", badge: "Chuyên sâu" },
+      { id: "gpt-4-turbo", name: "🚀 GPT-4 Turbo", badge: "Cao cấp" },
+      { id: "gpt-3.5-turbo", name: "⚡ GPT-3.5 Turbo", badge: "Cơ bản" },
+    ],
+  },
+  groq: {
+    name: "Groq Cloud (LPU Ultra-Fast)",
+    badgeColor: "rgba(249, 115, 22, 0.15)",
+    textColor: "#f97316",
+    borderColor: "rgba(249, 115, 22, 0.4)",
+    keyDocUrl: "https://console.groq.com/keys",
+    keyDocName: "Lấy Key Groq LPU ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (Llama 3.3 70B - Tốc độ bàn thờ)", badge: "Khuyên dùng" },
+      { id: "llama-3.3-70b-versatile", name: "⚡ Llama 3.3 70B Versatile (Cực nhanh & Thông minh)", badge: "Tốc độ cao" },
+      { id: "llama-3.1-8b-instant", name: "🚀 Llama 3.1 8B Instant (Phản hồi < 0.2s)", badge: "Siêu tốc" },
+      { id: "mixtral-8x7b-32768", name: "🧠 Mixtral 8x7B (Context 32k)", badge: "Mạnh mẽ" },
+      { id: "gemma2-9b-it", name: "✨ Google Gemma 2 9B (Groq Accelerated)", badge: "Google" },
+    ],
+  },
+  deepseek: {
+    name: "DeepSeek AI",
+    badgeColor: "rgba(59, 130, 246, 0.15)",
+    textColor: "#60a5fa",
+    borderColor: "rgba(59, 130, 246, 0.4)",
+    keyDocUrl: "https://platform.deepseek.com/api_keys",
+    keyDocName: "Lấy Key DeepSeek ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (DeepSeek-V3 / Chat)", badge: "Khuyên dùng" },
+      { id: "deepseek-chat", name: "⚡ DeepSeek Chat (V3 - Trí tuệ tối ưu)", badge: "Thông minh" },
+      { id: "deepseek-reasoner", name: "🧠 DeepSeek Reasoner (R1 - Suy luận logic sâu)", badge: "R1 Suy luận" },
+    ],
+  },
+  anthropic: {
+    name: "Anthropic Claude",
+    badgeColor: "rgba(217, 119, 6, 0.15)",
+    textColor: "#fbbf24",
+    borderColor: "rgba(217, 119, 6, 0.4)",
+    keyDocUrl: "https://console.anthropic.com/settings/keys",
+    keyDocName: "Lấy Key Claude ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (Claude 3.5 Sonnet)", badge: "Khuyên dùng" },
+      { id: "claude-3-5-sonnet-20241022", name: "🧠 Claude 3.5 Sonnet (Đỉnh cao phân tích & Logic)", badge: "Tốt nhất" },
+      { id: "claude-3-5-haiku-20241022", name: "⚡ Claude 3.5 Haiku (Siêu tốc & Tiết kiệm)", badge: "Nhanh" },
+      { id: "claude-3-opus-20240229", name: "🚀 Claude 3 Opus", badge: "Chuyên gia" },
+    ],
+  },
+  openrouter: {
+    name: "OpenRouter (Universal Hub)",
+    badgeColor: "rgba(168, 85, 247, 0.15)",
+    textColor: "#c084fc",
+    borderColor: "rgba(168, 85, 247, 0.4)",
+    keyDocUrl: "https://openrouter.ai/keys",
+    keyDocName: "Lấy Key OpenRouter ↗",
+    models: [
+      { id: "auto", name: "✨ Tự động (Meta Llama 3.3 70B)", badge: "Khuyên dùng" },
+      { id: "meta-llama/llama-3.3-70b-instruct", name: "⚡ Meta Llama 3.3 70B Instruct", badge: "Llama" },
+      { id: "openai/gpt-4o-mini", name: "⚡ OpenAI GPT-4o Mini (via OpenRouter)", badge: "OpenAI" },
+      { id: "anthropic/claude-3.5-sonnet", name: "🧠 Anthropic Claude 3.5 Sonnet", badge: "Claude" },
+      { id: "deepseek/deepseek-chat", name: "🚀 DeepSeek V3", badge: "DeepSeek" },
+      { id: "google/gemini-flash-1.5", name: "✨ Gemini 1.5 Flash", badge: "Gemini" },
+    ],
+  },
+  custom: {
+    name: "Tùy Chỉnh / Custom API Key",
+    badgeColor: "rgba(234, 179, 8, 0.15)",
+    textColor: "#facc15",
+    borderColor: "rgba(234, 179, 8, 0.4)",
+    keyDocUrl: "https://aistudio.google.com/app/apikey",
+    keyDocName: "Kiểm tra định dạng Key",
+    models: [
+      { id: "auto", name: "✨ Tự động (Nhận diện theo Endpoint tương thích)", badge: "Auto" },
+      { id: "gemini-2.5-flash", name: "⚡ Google Gemini 2.5 Flash", badge: "Gemini" },
+      { id: "gpt-4o-mini", name: "⚡ OpenAI GPT-4o Mini", badge: "OpenAI" },
+      { id: "llama-3.3-70b-versatile", name: "🚀 Groq Llama 3.3 70B", badge: "Groq" },
+      { id: "deepseek-chat", name: "🧠 DeepSeek Chat", badge: "DeepSeek" },
+    ],
+  },
+};
+
+function detectClientAiProvider(key) {
+  const k = (key || "").trim();
+  if (!k) return "gemini";
+  if (k.startsWith("AIzaSy") || k.length === 39) return "gemini";
+  if (k.startsWith("gsk_")) return "groq";
+  if (k.startsWith("sk-ant-")) return "anthropic";
+  if (k.startsWith("sk-or-")) return "openrouter";
+  if (k.startsWith("sk-") && (k.length === 35 || k.includes("deepseek"))) return "deepseek";
+  if (k.startsWith("sk-") && k.length >= 40) return "openai";
+  return "custom";
+}
+
 function initAiStudio() {
   const summarizeBtn = document.getElementById("btnAiSummarize");
   const filterBtn = document.getElementById("btnAiFilterCheck");
   const summarizeOutput = document.getElementById("aiSummarizeOutput");
   const filterInput = document.getElementById("aiFilterInput");
   const filterOutput = document.getElementById("aiFilterOutput");
+  const modelSelect = document.getElementById("aiModelSelect");
+  const apiKeyInput = document.getElementById("aiCustomApiKey");
+  const toggleVisibilityBtn = document.getElementById("btnToggleApiKeyVisibility");
+  const saveApiKeyBtn = document.getElementById("btnSaveAiApiKey");
+  const apiKeyStatus = document.getElementById("aiApiKeyStatus");
+  const detectedBadge = document.getElementById("aiDetectedProviderBadge");
+  const modelCountBadge = document.getElementById("aiModelCountBadge");
+  const keyLink = document.getElementById("aiKeyLink");
+
+  let currentDetectedProvider = "gemini";
+
+  function populateModels(providerKey, preserveValue = null) {
+    if (!modelSelect) return;
+    const provider = AI_PROVIDERS[providerKey] || AI_PROVIDERS.gemini;
+    const models = provider.models || [];
+
+    // Update Badge & Links
+    if (detectedBadge) {
+      detectedBadge.innerText = `Loại Key: ${provider.name}`;
+      detectedBadge.style.background = provider.badgeColor;
+      detectedBadge.style.color = provider.textColor;
+      detectedBadge.style.borderColor = provider.borderColor;
+    }
+    if (modelCountBadge) {
+      modelCountBadge.innerText = `${models.length} mô hình khả dụng`;
+    }
+    if (keyLink) {
+      keyLink.href = provider.keyDocUrl;
+      keyLink.innerText = `🔑 ${provider.keyDocName}`;
+    }
+
+    const previousValue = preserveValue || modelSelect.value || "auto";
+    modelSelect.innerHTML = "";
+
+    models.forEach((m) => {
+      const opt = document.createElement("option");
+      opt.value = m.id;
+      opt.innerText = m.name;
+      modelSelect.appendChild(opt);
+    });
+
+    // Try to re-select previous or fallback to auto
+    const exists = models.some((m) => m.id === previousValue);
+    modelSelect.value = exists ? previousValue : "auto";
+    localStorage.setItem("ai_selected_model", modelSelect.value);
+  }
+
+  function handleKeyChange(keyVal) {
+    const detected = detectClientAiProvider(keyVal);
+    currentDetectedProvider = detected;
+    populateModels(detected);
+
+    if (apiKeyStatus) {
+      if (!keyVal) {
+        apiKeyStatus.innerHTML = '<span style="color: var(--cyan-accent);">✨ Dùng Gemini mặc định của hệ thống (Hoặc nhập key OpenAI/Groq/DeepSeek/Claude...)</span>';
+      } else {
+        const pInfo = AI_PROVIDERS[detected];
+        apiKeyStatus.innerHTML = `<span style="color: ${pInfo.textColor}; font-weight: 500;">✓ Đã nhận diện mã key: <strong>${pInfo.name}</strong>. Các model phù hợp đã được nạp tự động!</span>`;
+      }
+    }
+  }
+
+  // Load saved preferences
+  const savedApiKey = localStorage.getItem("ai_custom_api_key") || localStorage.getItem("gemini_custom_api_key") || "";
+  const savedModel = localStorage.getItem("ai_selected_model") || localStorage.getItem("gemini_selected_model") || "auto";
+
+  if (apiKeyInput) {
+    apiKeyInput.value = savedApiKey;
+    handleKeyChange(savedApiKey);
+    if (modelSelect && savedModel) {
+      modelSelect.value = savedModel;
+    }
+
+    apiKeyInput.addEventListener("input", () => {
+      handleKeyChange(apiKeyInput.value.trim());
+    });
+  } else {
+    populateModels("gemini");
+  }
+
+  if (modelSelect) {
+    modelSelect.addEventListener("change", () => {
+      localStorage.setItem("ai_selected_model", modelSelect.value);
+    });
+  }
+
+  if (toggleVisibilityBtn && apiKeyInput) {
+    toggleVisibilityBtn.addEventListener("click", () => {
+      if (apiKeyInput.type === "password") {
+        apiKeyInput.type = "text";
+        toggleVisibilityBtn.innerText = "🙈";
+      } else {
+        apiKeyInput.type = "password";
+        toggleVisibilityBtn.innerText = "👁️";
+      }
+    });
+  }
+
+  if (saveApiKeyBtn && apiKeyInput) {
+    saveApiKeyBtn.addEventListener("click", () => {
+      const keyVal = apiKeyInput.value.trim();
+      localStorage.setItem("ai_custom_api_key", keyVal);
+      localStorage.setItem("gemini_custom_api_key", keyVal); // backward compatibility
+      handleKeyChange(keyVal);
+      const pName = AI_PROVIDERS[currentDetectedProvider]?.name || "AI";
+      showToast(keyVal ? `Đã lưu API Key (${pName}) thành công!` : "Đã chuyển về dùng Key mặc định");
+    });
+  }
+
+  function getAiPayload(extra = {}) {
+    const selectedModel = modelSelect ? modelSelect.value : "auto";
+    const customKey = apiKeyInput ? apiKeyInput.value.trim() : (localStorage.getItem("ai_custom_api_key") || "");
+    return {
+      provider: currentDetectedProvider,
+      model: selectedModel,
+      apiKey: customKey,
+      ...extra,
+    };
+  }
 
   if (summarizeBtn) {
     summarizeBtn.addEventListener("click", async () => {
       const token = localStorage.getItem("admin_token") || "";
-      summarizeOutput.innerHTML = "⏳ <em>Gemini 3.7 Flash đang phân tích log sự kiện và chat... Vui lòng chờ vài giây...</em>";
+      const selectedModel = modelSelect ? modelSelect.value : "auto";
+      const providerInfo = AI_PROVIDERS[currentDetectedProvider] || AI_PROVIDERS.gemini;
+      
+      summarizeOutput.innerHTML = `⏳ <em>Đang gửi yêu cầu tới <strong>${escapeHtml(providerInfo.name)}</strong> (Mô hình: ${escapeHtml(selectedModel)})... Vui lòng chờ vài giây...</em>`;
 
       try {
+        const payload = getAiPayload({ clientKey: currentClientKey || "" });
         const res = await fetch("/admin/ai/summarize", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ clientKey: currentClientKey || "" }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
         if (res.ok && data.ok) {
-          summarizeOutput.innerText = data.summary;
+          const providerTag = data.providerUsed || providerInfo.name;
+          const modelBadge = `<div style="margin-bottom: 10px; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 6px; background: rgba(0, 242, 254, 0.1); border: 1px solid rgba(0, 242, 254, 0.3); font-size: 11.5px; color: #00f2fe;">✨ Nhà cung cấp: <strong>${escapeHtml(providerTag)}</strong> | Model: <strong>${escapeHtml(data.modelUsed || selectedModel)}</strong> (${data.logsAnalyzed || 0} sự kiện)</div>\n\n`;
+          summarizeOutput.innerHTML = modelBadge + `<div style="white-space: pre-wrap;">${escapeHtml(data.summary)}</div>`;
         } else {
-          summarizeOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi AI: ${data.error}</span>`;
+          summarizeOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi AI (${escapeHtml(providerInfo.name)}): ${escapeHtml(data.error || "Không xác định")}</span>`;
         }
       } catch (err) {
-        summarizeOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi: ${err.message}</span>`;
+        summarizeOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi kết nối: ${escapeHtml(err.message)}</span>`;
       }
     });
   }
@@ -1707,38 +2009,47 @@ function initAiStudio() {
   if (filterBtn) {
     filterBtn.addEventListener("click", async () => {
       const text = filterInput.value.trim();
-      if (!text) return;
+      if (!text) {
+        showToast("Vui lòng nhập đoạn chat cần kiểm duyệt!", true);
+        return;
+      }
 
       const token = localStorage.getItem("admin_token") || "";
+      const selectedModel = modelSelect ? modelSelect.value : "auto";
+      const providerInfo = AI_PROVIDERS[currentDetectedProvider] || AI_PROVIDERS.gemini;
       filterOutput.style.display = "block";
-      filterOutput.innerHTML = "⏳ Đang kiểm tra vi phạm với AI...";
+      filterOutput.innerHTML = `⏳ Đang kiểm tra vi phạm với <strong>${escapeHtml(providerInfo.name)}</strong> (${escapeHtml(selectedModel)})...`;
 
       try {
+        const payload = getAiPayload({ text });
         const res = await fetch("/admin/ai/filter-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify(payload),
         });
 
         const data = await res.json();
-        if (res.ok && data.ok && data.result) {
-          const r = data.result;
+        if (res.ok && data.ok) {
+          const r = data.result || {};
           const isSafe = r.isSafe;
           filterOutput.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-              <span class="status-micro-tag" style="${
-                isSafe ? "background: rgba(34,197,94,0.2); color: #4ade80;" : "background: rgba(239,68,68,0.2); color: #f87171;"
-              }">${r.category || (isSafe ? "SAFE" : "TOXIC")}</span>
-              <strong>${isSafe ? "✅ An Toàn" : "⚠️ Cảnh Báo Vi Phạm"}</strong>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="status-micro-tag" style="${
+                  isSafe ? "background: rgba(34,197,94,0.2); color: #4ade80;" : "background: rgba(239,68,68,0.2); color: #f87171;"
+                }">${escapeHtml(r.category || (isSafe ? "SAFE" : "TOXIC"))}</span>
+                <strong>${isSafe ? "✅ An Toàn" : "⚠️ Cảnh Báo Vi Phạm"}</strong>
+              </div>
+              <span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(data.providerUsed || providerInfo.name)} • ${escapeHtml(data.modelUsed || selectedModel)}</span>
             </div>
             <div><strong>Lý do:</strong> ${escapeHtml(r.reason || "Không có")}</div>
-            <div style="margin-top: 4px;"><strong>Đề xuất:</strong> <code>${r.suggestedAction || "ALLOW"}</code></div>
+            <div style="margin-top: 4px;"><strong>Đề xuất xử lý:</strong> <code>${escapeHtml(r.suggestedAction || "ALLOW")}</code></div>
           `;
         } else {
-          filterOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi: ${data.error}</span>`;
+          filterOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi (${escapeHtml(providerInfo.name)}): ${escapeHtml(data.error || "Không xác định")}</span>`;
         }
       } catch (err) {
-        filterOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi: ${err.message}</span>`;
+        filterOutput.innerHTML = `<span style="color: var(--rose-danger);">❌ Lỗi: ${escapeHtml(err.message)}</span>`;
       }
     });
   }
@@ -2974,5 +3285,89 @@ function stopMaintenanceTicker() {
   if (maintenanceTickerTimer) {
     clearInterval(maintenanceTickerTimer);
     maintenanceTickerTimer = null;
+  }
+}
+
+// ==========================================
+// 17. Client Source Protection & Anti-Inspect (F12 / View Source / Right-Click)
+// ==========================================
+function isUserAdminAuthenticated() {
+  const token = localStorage.getItem("admin_token") || "";
+  const role = localStorage.getItem("user_role") || "";
+  return Boolean(token && token.length > 10) && (role === "ADMIN" || role === "OPERATOR" || !role);
+}
+
+function initClientSecurityProtection() {
+  // 1. Prevent Right Click / Context Menu (inspect, save as, view source) for unauthenticated guests
+  document.addEventListener("contextmenu", (e) => {
+    if (isUserAdminAuthenticated()) return; // Allow admin full access
+
+    // Allow normal typing context on input/textarea/select
+    const target = e.target;
+    if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) {
+      return;
+    }
+
+    e.preventDefault();
+    showSecurityToast("⚠️ Thao tác bị khóa: Chỉ Quản trị viên (Admin) đã đăng nhập mới có quyền mở menu này.");
+  });
+
+  // 2. Prevent F12, F2, Ctrl+U (View Source), Ctrl+Shift+I / J / C (DevTools), Ctrl+S (Save page)
+  document.addEventListener("keydown", (e) => {
+    if (isUserAdminAuthenticated()) return; // Allow admin dev tools
+
+    const key = e.key;
+    const keyCode = e.keyCode || e.which;
+    const isCtrl = e.ctrlKey || e.metaKey;
+    const isShift = e.shiftKey;
+
+    // F12 (123), F2 (113), or F12 key string
+    if (key === "F12" || keyCode === 123 || key === "F2" || keyCode === 113) {
+      e.preventDefault();
+      e.stopPropagation();
+      showSecurityToast("🛡️ Phím tắt kiểm tra mã nguồn (F12/F2) đã bị vô hiệu hóa.");
+      return false;
+    }
+
+    // Ctrl + U (View Source)
+    if (isCtrl && (key === "u" || key === "U" || keyCode === 85)) {
+      e.preventDefault();
+      e.stopPropagation();
+      showSecurityToast("🛡️ Xem mã nguồn trang (Ctrl+U) đã bị chặn trên phiên khách.");
+      return false;
+    }
+
+    // Ctrl + Shift + I (Inspect), Ctrl + Shift + J (Console), Ctrl + Shift + C (Element selector)
+    if (isCtrl && isShift && (key === "I" || key === "i" || key === "J" || key === "j" || key === "C" || key === "c" || keyCode === 73 || keyCode === 74 || keyCode === 67)) {
+      e.preventDefault();
+      e.stopPropagation();
+      showSecurityToast("🛡️ Công cụ nhà phát triển (DevTools) đã bị khóa.");
+      return false;
+    }
+
+    // Ctrl + S (Save Page)
+    if (isCtrl && (key === "s" || key === "S" || keyCode === 83)) {
+      // Allow if typing inside form
+      if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+      e.preventDefault();
+      e.stopPropagation();
+      showSecurityToast("🛡️ Lưu mã nguồn trang (Ctrl+S) đã bị hạn chế.");
+      return false;
+    }
+  });
+
+  // 3. Prevent dragging images / text selections to inspect sources
+  document.addEventListener("dragstart", (e) => {
+    if (!isUserAdminAuthenticated() && e.target && e.target.tagName === "IMG") {
+      e.preventDefault();
+    }
+  });
+}
+
+function showSecurityToast(msg) {
+  if (typeof showToast === "function") {
+    showToast(msg, true);
+  } else {
+    alert(msg);
   }
 }

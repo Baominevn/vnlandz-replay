@@ -2066,23 +2066,168 @@ app.post("/api/discord-to-mc", rateLimit(60, 60000), (req: Request, res: Respons
   });
 });
 
-// Gemini AI Summarizer & Chat Filter APIs (V.5)
-let geminiClient: GoogleGenAI | null = null;
-function getGemini(): GoogleGenAI {
-  if (!geminiClient) {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) {
-      throw new Error("GEMINI_API_KEY environment variable is required for AI features");
-    }
-    geminiClient = new GoogleGenAI({ apiKey: key });
+// Multi-Provider AI Engine (Gemini, OpenAI, Groq, DeepSeek, Anthropic, OpenRouter, Custom)
+interface AiRequestOptions {
+  provider?: string;
+  model?: string;
+  apiKey?: string;
+}
+
+function detectAiProvider(key: string, manualProvider?: string): string {
+  const k = (key || "").trim();
+  const mp = (manualProvider || "").trim().toLowerCase();
+  if (mp && mp !== "auto") {
+    return mp;
   }
-  return geminiClient;
+  if (!k) return "gemini";
+  if (k.startsWith("AIzaSy") || k.length === 39) return "gemini";
+  if (k.startsWith("sk-ant-")) return "anthropic";
+  if (k.startsWith("gsk_")) return "groq";
+  if (k.startsWith("sk-or-")) return "openrouter";
+  if (k.startsWith("sk-") && k.length >= 40) {
+    if (k.includes("deepseek") || k.length === 35) return "deepseek";
+    return "openai";
+  }
+  return "custom";
+}
+
+function getGemini(customKey?: string): GoogleGenAI {
+  const key = (customKey && typeof customKey === "string" && customKey.trim().length > 0)
+    ? customKey.trim()
+    : process.env.GEMINI_API_KEY;
+  if (!key) {
+    throw new Error("Chưa cấu hình Gemini API Key! Vui lòng nhập API Key của bạn từ Google AI Studio trên giao diện hoặc cấu hình biến môi trường GEMINI_API_KEY.");
+  }
+  return new GoogleGenAI({ apiKey: key });
+}
+
+// Universal AI Caller supporting OpenAI compatible APIs (ChatGPT, Groq, DeepSeek, OpenRouter, etc.)
+async function executeUniversalAiCall(opts: {
+  provider: string;
+  model: string;
+  apiKey: string;
+  prompt: string;
+  systemPrompt?: string;
+  jsonMode?: boolean;
+}): Promise<{ text: string; modelUsed: string; providerUsed: string }> {
+  const { provider, model, apiKey, prompt, systemPrompt, jsonMode } = opts;
+
+  if (provider === "gemini") {
+    const ai = getGemini(apiKey);
+    const resolvedModel = (!model || model === "auto") ? "gemini-2.5-flash" : model;
+    const response = await ai.models.generateContent({
+      model: resolvedModel,
+      contents: prompt,
+      config: jsonMode ? { responseMimeType: "application/json" } : undefined,
+    });
+    return {
+      text: response.text || "",
+      modelUsed: resolvedModel,
+      providerUsed: "Google Gemini",
+    };
+  }
+
+  // OpenAI-compatible endpoints mapping
+  let baseUrl = "https://api.openai.com/v1/chat/completions";
+  let defaultModel = "gpt-4o-mini";
+  let authHeader = `Bearer ${apiKey}`;
+  let customHeaders: Record<string, string> = {};
+
+  if (provider === "groq") {
+    baseUrl = "https://api.groq.com/openai/v1/chat/completions";
+    defaultModel = "llama-3.3-70b-versatile";
+  } else if (provider === "deepseek") {
+    baseUrl = "https://api.deepseek.com/chat/completions";
+    defaultModel = "deepseek-chat";
+  } else if (provider === "openrouter") {
+    baseUrl = "https://openrouter.ai/api/v1/chat/completions";
+    defaultModel = "meta-llama/llama-3.3-70b-instruct";
+    customHeaders["HTTP-Referer"] = "https://vnlandz-replay.com";
+    customHeaders["X-Title"] = "VnlandZ Relay Nexus";
+  } else if (provider === "anthropic") {
+    // Anthropic Claude Messages API
+    const anthropicModel = (!model || model === "auto") ? "claude-3-5-sonnet-20241022" : model;
+    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: anthropicModel,
+        max_tokens: 2048,
+        system: systemPrompt || "You are a professional Minecraft server analyst.",
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+    if (!claudeRes.ok) {
+      const errData = await claudeRes.json().catch(() => ({}));
+      throw new Error(`Anthropic Claude API Error (${claudeRes.status}): ${errData.error?.message || claudeRes.statusText}`);
+    }
+    const claudeData = await claudeRes.json();
+    const replyText = claudeData.content?.[0]?.text || "";
+    return {
+      text: replyText,
+      modelUsed: anthropicModel,
+      providerUsed: "Anthropic Claude",
+    };
+  }
+
+  if (!apiKey) {
+    throw new Error(`Chưa có API Key cho nhà cung cấp ${provider.toUpperCase()}! Vui lòng nhập API Key trên giao diện.`);
+  }
+
+  const selectedModel = (!model || model === "auto") ? defaultModel : model;
+  const messages = [];
+  if (systemPrompt) {
+    messages.push({ role: "system", content: systemPrompt });
+  }
+  messages.push({ role: "user", content: prompt });
+
+  const reqBody: any = {
+    model: selectedModel,
+    messages,
+    temperature: 0.3,
+  };
+  if (jsonMode && (provider === "openai" || provider === "groq" || provider === "deepseek")) {
+    reqBody.response_format = { type: "json_object" };
+  }
+
+  const res = await fetch(baseUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authHeader,
+      ...customHeaders,
+    },
+    body: JSON.stringify(reqBody),
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const errMsg = errData.error?.message || `HTTP ${res.status} ${res.statusText}`;
+    throw new Error(`${provider.toUpperCase()} API Error: ${errMsg}`);
+  }
+
+  const data = await res.json();
+  const reply = data.choices?.[0]?.message?.content || "";
+  return {
+    text: reply,
+    modelUsed: selectedModel,
+    providerUsed: provider.toUpperCase(),
+  };
 }
 
 app.post("/admin/ai/summarize", checkAuth, requirePermission("AI_STUDIO"), rateLimit(10, 60000), async (req: Request, res: Response) => {
   const ip = getClientIp(req);
   try {
     const targetKey = cleanKey(req.body.clientKey);
+    const customApiKey = typeof req.body.apiKey === "string" ? req.body.apiKey.trim() : "";
+    const requestedModel = typeof req.body.model === "string" ? req.body.model.trim() : "auto";
+    const manualProvider = typeof req.body.provider === "string" ? req.body.provider.trim() : "";
+    const provider = detectAiProvider(customApiKey, manualProvider);
+
     let targetEvents: RelayEvent[] = [];
     if (targetKey && events.has(targetKey)) {
       targetEvents = events.get(targetKey) || [];
@@ -2099,7 +2244,6 @@ app.post("/admin/ai/summarize", checkAuth, requirePermission("AI_STUDIO"), rateL
       return;
     }
 
-    const ai = getGemini();
     const prompt = `Bạn là một chuyên gia quản trị máy chủ Minecraft AI và phân tích Relay Logs.
 Hãy phân tích danh sách ${targetEvents.length} sự kiện/chat logs gần nhất dưới đây và đưa ra:
 1. 📊 Tóm tắt phiên chơi (Tổng quan hoạt động, số người tham gia, diễn biến chính)
@@ -2120,17 +2264,21 @@ ${JSON.stringify(
   2
 )}`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
+    const aiResult = await executeUniversalAiCall({
+      provider,
+      model: requestedModel,
+      apiKey: customApiKey,
+      prompt,
+      systemPrompt: "Bạn là trợ lý AI chuyên phân tích dữ liệu máy chủ Minecraft chuyên nghiệp.",
     });
 
-    const summaryText = response.text || "Không tạo được phản hồi.";
-    addAuditLog(ip, "AI_SUMMARIZE", `Tạo báo cáo tóm tắt AI cho ${targetEvents.length} logs`, "info");
+    addAuditLog(ip, "AI_SUMMARIZE", `Tạo báo cáo tóm tắt AI (${aiResult.providerUsed} - ${aiResult.modelUsed}) cho ${targetEvents.length} logs`, "info");
 
     res.json({
       ok: true,
-      summary: summaryText,
+      summary: aiResult.text || "Không tạo được nội dung tóm tắt.",
+      modelUsed: aiResult.modelUsed,
+      providerUsed: aiResult.providerUsed,
       logsAnalyzed: targetEvents.length,
     });
   } catch (err: any) {
@@ -2141,12 +2289,16 @@ ${JSON.stringify(
 app.post("/admin/ai/filter-chat", checkAuth, requirePermission("AI_STUDIO"), rateLimit(15, 60000), async (req: Request, res: Response) => {
   try {
     const text = cleanText(req.body.text || "");
+    const customApiKey = typeof req.body.apiKey === "string" ? req.body.apiKey.trim() : "";
+    const requestedModel = typeof req.body.model === "string" ? req.body.model.trim() : "auto";
+    const manualProvider = typeof req.body.provider === "string" ? req.body.provider.trim() : "";
+    const provider = detectAiProvider(customApiKey, manualProvider);
+
     if (!text) {
       res.status(400).json({ ok: false, error: "Nội dung kiểm duyệt không được trống" });
       return;
     }
 
-    const ai = getGemini();
     const prompt = `Bạn là hệ thống kiểm duyệt tự động cho máy chủ Minecraft.
 Phân tích tin nhắn sau: "${text}"
 Trả về JSON chuẩn với format:
@@ -2158,14 +2310,34 @@ Trả về JSON chuẩn với format:
   "suggestedAction": "ALLOW" | "WARN" | "MUTE" | "BLOCK"
 }`;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3.7-flash",
-      contents: prompt,
-      config: { responseMimeType: "application/json" },
+    const aiResult = await executeUniversalAiCall({
+      provider,
+      model: requestedModel,
+      apiKey: customApiKey,
+      prompt,
+      systemPrompt: "Bạn là bot kiểm duyệt chat Minecraft, luôn trả về định dạng JSON hợp lệ.",
+      jsonMode: true,
     });
 
-    const parsedResult = JSON.parse(response.text || "{}");
-    res.json({ ok: true, result: parsedResult });
+    let parsedResult: any = {};
+    try {
+      const cleaned = aiResult.text.replace(/```json/gi, "").replace(/```/g, "").trim();
+      parsedResult = JSON.parse(cleaned);
+    } catch {
+      parsedResult = {
+        isSafe: true,
+        category: "UNKNOWN",
+        reason: aiResult.text,
+        suggestedAction: "ALLOW",
+      };
+    }
+
+    res.json({
+      ok: true,
+      modelUsed: aiResult.modelUsed,
+      providerUsed: aiResult.providerUsed,
+      result: parsedResult,
+    });
   } catch (err: any) {
     res.status(500).json({ ok: false, error: `AI Filter Lỗi: ${err.message}` });
   }

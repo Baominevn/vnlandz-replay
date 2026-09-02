@@ -652,27 +652,35 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   requestCounters.totalHttp++;
 
   const headers = req.headers || {};
-  const matchedPath =
-    (headers["x-matched-path"] as string) ||
-    (headers["x-vercel-matched-path"] as string) ||
-    (headers["x-forwarded-uri"] as string) ||
-    (headers["x-real-url"] as string) ||
-    (headers["x-original-url"] as string);
+  const rawUrl = req.url || "/";
+  const initialUrl = rawUrl;
 
-  const initialUrl = req.url;
+  if (rawUrl === "/api/index.ts" || rawUrl.startsWith("/api/index.ts") || rawUrl === "/api/index" || rawUrl.startsWith("/api/index")) {
+    const candidateHeaders = [
+      headers["x-vercel-matched-path"],
+      headers["x-forwarded-uri"],
+      headers["x-real-url"],
+      headers["x-original-url"],
+      headers["x-original-uri"],
+      headers["x-rewrite-url"],
+      headers["x-invoke-path"],
+    ];
 
-  if (matchedPath && typeof matchedPath === "string" && (req.url === "/api/index.ts" || req.url.startsWith("/api/index.ts") || req.url === "/api/index" || req.url.startsWith("/api/index"))) {
-    const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
-    req.url = matchedPath.includes("?") ? matchedPath : matchedPath + query;
-  } else if (req.url) {
-    if (req.url.startsWith("/api/index.ts")) {
-      const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
-      const pathOnly = req.url.split("?")[0].replace(/^\/api\/index\.ts/, "") || "/";
-      req.url = pathOnly + query;
-    } else if (req.url.startsWith("/api/index")) {
-      const query = req.url.includes("?") ? "?" + req.url.split("?")[1] : "";
-      const pathOnly = req.url.split("?")[0].replace(/^\/api\/index/, "") || "/";
-      req.url = pathOnly + query;
+    let resolved = "";
+    for (const h of candidateHeaders) {
+      if (typeof h === "string" && h.trim() && !h.startsWith("/api/index")) {
+        resolved = h.trim();
+        break;
+      }
+    }
+
+    if (resolved) {
+      const query = rawUrl.includes("?") && !resolved.includes("?") ? rawUrl.substring(rawUrl.indexOf("?")) : "";
+      req.url = resolved + query;
+    } else {
+      const query = rawUrl.includes("?") ? rawUrl.substring(rawUrl.indexOf("?")) : "";
+      const stripped = rawUrl.split("?")[0].replace(/^\/api\/index(\.ts)?/, "").trim();
+      req.url = (stripped || "/") + query;
     }
   }
 
@@ -1032,7 +1040,7 @@ function rateLimit(maxRequests: number, windowMs: number) {
 // 4. Authentication & Anti-Brute Force Protection
 // ==========================================
 
-app.post(["/login", "/api/login", "/api/auth/login"], (req: Request, res: Response) => {
+app.post(["/", "/login", "/api/login", "/api/auth/login", "/api/index.ts", "/api/index"], (req: Request, res: Response) => {
   const ip = getClientIp(req);
   const now = Date.now();
 
